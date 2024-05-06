@@ -1,0 +1,12 @@
+{{- if .Values.configmap.create }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.name }}-config
+  namespace: {{ .Values.namespace }}
+data:
+{{- range $key, $val := .Values.configmap.values }}
+  {{ $key }}: |-
+{{ $val | indent 4}}
+{{- end }}
+{{- end -}}

@@ -1,0 +1,9 @@
+{{- include "common.ingress" . }}
+---
+{{- include "common.service" . }}
+---
+{{- include "common.deployment" . }}
+---
+{{- include "common.hpa" . }}
+---
+{{- include "common.serviceaccount" . }}
