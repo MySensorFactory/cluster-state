@@ -1,17 +1,19 @@
+{{- define "common.deployment" -}}
 {{- if .Values.deployment.create -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "Chart.fullname" . }}
+  name: {{ .Chart.Name }}-deployment
   labels:
-    {{- include "Chart.labels" . | nindent 4 }}
+    app: {{ .Chart.Name }}
+    {{- include "helm.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "Chart.selectorLabels" . | nindent 6 }}
+      app: {{ .Chart.Name }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -19,24 +21,21 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "Chart.labels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+        app: {{ .Chart.Name }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "Chart.serviceAccountName" . }}
+      serviceAccountName: {{ include "helm.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: {{ .Values.image.name }}
+          imagePullPolicy: {{ .Values.image.imagePullPolicy }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -68,3 +67,4 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}
+  {{- end}}
