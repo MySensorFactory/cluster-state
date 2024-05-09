@@ -1,12 +1,16 @@
-{{- if .Values.configmap.create }}
+{{- define "common.configmap" -}}
+{{- if hasKey .Values "configmap" }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Chart.name }}-config
+  name: {{ .Chart.Name }}-config
   namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Chart.Name }}
 data:
 {{- range $key, $val := .Values.configmap.values }}
   {{ $key }}: |-
 {{ $val | indent 4}}
 {{- end }}
 {{- end -}}
+  {{- end}}
