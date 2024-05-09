@@ -1,0 +1,65 @@
+namespace: factory
+
+replicaCount: 1
+
+image:
+  name: juliantheking/data-service
+  imagePullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+ingress:
+  enabled: false
+
+deployment:
+  create: true
+
+resources: {}
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+livenessProbe: {}
+
+readinessProbe: {}
+
+env:
+  - name: POSTGRES_DB
+    valueFrom:
+      configMapKeyRef:
+        name: db-credentials
+        key: POSTRGES_DB
+  - name: POSTGRES_USER
+    valueFrom:
+      configMapKeyRef:
+        name: db-credentials
+        key: POSTGRES_USER
+  - name: POSTGRES_PASSWORD
+    valueFrom:
+      configMapKeyRef:
+        name: db-credentials
+        key: POSTGRES_PASSWORD
