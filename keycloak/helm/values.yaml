@@ -1,0 +1,101 @@
+namespace: factory
+
+replicaCount: 1
+
+image:
+  name: quay.io/keycloak/keycloak:legacy
+  imagePullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+ingress:
+  enabled: false
+
+deployment:
+  create: true
+
+resources: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+livenessProbe: {}
+
+readinessProbe: {}
+
+configmap:
+  values:
+    DB_VENDOR: 'POSTGRES'
+    DB_ADDR: 'postgres'
+    DB_DATABASE: 'keycloak'
+    DB_USER: 'keycloak'
+    DB_SCHEMA: 'public'
+    DB_PASSWORD: 'password'
+    KEYCLOAK_USER: 'admin'
+    KEYCLOAK_PASSWORD: 'Pa55w0rd'
+
+env:
+  - name: DB_VENDOR
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-credentials
+        key: DB_VENDOR
+  - name: DB_ADDR
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-credentials
+        key: DB_ADDR
+  - name: DB_DATABASE
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-credentials
+        key: DB_DATABASE
+  - name: DB_USER
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-credentials
+        key: DB_USER
+  - name: DB_SCHEMA
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-credentials
+        key: DB_SCHEMA
+  - name: DB_PASSWORD
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-credentials
+        key: DB_PASSWORD
+  - name: KEYCLOAK_USER
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-credentials
+        key: KEYCLOAK_USER
+  - name: KEYCLOAK_PASSWORD
+    valueFrom:
+      configMapKeyRef:
+        name: keycloak-credentials
+        key: KEYCLOAK_PASSWORD
