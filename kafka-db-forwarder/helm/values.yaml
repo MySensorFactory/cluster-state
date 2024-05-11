@@ -1,0 +1,154 @@
+namespace: factory
+
+replicaCount: 1
+
+image:
+  name: juliantheking/kafka-db-forwarder
+  imagePullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIp
+  port: 8080
+  targetPort: 8080
+
+ingress:
+  enabled: false
+
+deployment:
+  create: true
+
+resources: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+livenessProbe: {}
+
+readinessProbe: {}
+
+volumes:
+  - name: config-volume
+    configMap:
+      name: kafka-db-forwarder-config
+
+volumeMounts:
+  - name: config-volume
+    mountPath: /config
+
+env:
+  - name: POSTGRES_DB
+    valueFrom:
+      configMapKeyRef:
+        name: db-credentials
+        key: POSTRGES_DB
+  - name: POSTGRES_USER
+    valueFrom:
+      configMapKeyRef:
+        name: db-credentials
+        key: POSTGRES_USER
+  - name: POSTGRES_PASSWORD
+    valueFrom:
+      configMapKeyRef:
+        name: db-credentials
+        key: POSTGRES_PASSWORD
+  - name: SPRING_CONFIG_LOCATION
+    value: /config/application.yaml
+
+configmap:
+  values:
+    application.yaml: |-
+      kafka:
+        config:
+          pressure:
+            enabled: true
+            bufferSize: 10
+            inputTopics: AfterReturnCompressorPressureMean,BeforeBeginCompressorPressureMean,AfterBeginCompressorPressureMean,BeforeReturnCompressorPressureMean
+            listenerId: pressureMeanListener
+            groupId: pressureMeanGroup
+          temperature:
+            enabled: true
+            bufferSize: 10
+            inputTopics: BeginTemperatureMean,ReturnTemperatureMean,BeforeBoilerTemperatureMean,AfterBoilerTemperatureMean
+            listenerId: temperatureMeanListener
+            groupId: temperatureMeanGroup
+          flowRate:
+            enabled: true
+            bufferSize: 10
+            inputTopics: CompressedReturnFlowRateMean,InputFlowRateMean,NotCompressedReturnFlowRateMean,OutputFlowRateMean
+            listenerId: flowRateMeanListener
+            groupId: flowRateMeanGroup
+          gasComposition:
+            enabled: true
+            bufferSize: 10
+            inputTopics: InputGasCompositionMean,BeginGasCompositionMean,OutputGasCompositionMean,ReturnGasCompositionMean
+            listenerId: gasCompositionMeanListener
+            groupId: gasCompositionMeanGroup
+          compressorState:
+            enabled: true
+            bufferSize: 10
+            inputTopics: BeginCompressorNoiseAndVibrationMean,ReturnCompressorNoiseAndVibrationMean
+            listenerId: compressorStateListener
+            groupId: compressorStateGroup
+      spring:
+        kafka:
+          bootstrap-servers: kafka-cluster:9092
+          producer:
+            bootstrap-servers: kafka-cluster:9092
+          consumer:
+            value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+            bootstrap-servers: kafka-cluster:9092
+            auto-offset-reset: latest
+            isolation-level: read_committed
+            group-id: dbForwarderGroup
+          listener:
+            missing-topics-fatal: true
+          properties:
+            schema:
+              registry:
+                url: http://schema-registry-svc:8081
+            specific:
+              avro:
+                reader: true
+            value:
+              subject:
+                name:
+                  strategy: io.confluent.kafka.serializers.subject.RecordNameStrategy
+        datasource:
+          url: jdbc:postgresql://database-svc:5432/factory
+          username: factory
+          password: factory
+        jpa:
+          properties:
+            hibernate:
+              order_inserts: true
+              dialect: org.hibernate.dialect.PostgreSQLDialect
+              jdbc:
+                batch_size: 10
+              format_sql: true
+              generate_statistics: true
+          hibernate:
+            ddl-auto: none
+          show-sql: true
+      server:
+        port: 8080
