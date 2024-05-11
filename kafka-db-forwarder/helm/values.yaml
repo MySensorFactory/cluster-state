@@ -112,9 +112,9 @@ configmap:
             groupId: compressorStateGroup
       spring:
         kafka:
-          bootstrap-servers: kafka-cluster:9092
+          bootstrap-servers: kafka-cluster-svc:9092
           producer:
-            bootstrap-servers: kafka-cluster:9092
+            bootstrap-servers: kafka-cluster-svc:9092
           consumer:
             value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
             bootstrap-servers: kafka-cluster:9092
@@ -135,9 +135,9 @@ configmap:
                 name:
                   strategy: io.confluent.kafka.serializers.subject.RecordNameStrategy
         datasource:
-          url: jdbc:postgresql://database-svc:5432/factory
-          username: factory
-          password: factory
+          url: jdbc:postgresql://database-svc:5432/${POSTRGES_DB}
+          username: ${POSTGRES_USER}
+          password: ${POSTGRES_PASSWORD}
         jpa:
           properties:
             hibernate:
