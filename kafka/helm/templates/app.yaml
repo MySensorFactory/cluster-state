@@ -1,0 +1,7 @@
+{{- include "common.service" . }}
+---
+{{- include "common.statefulset" . }}
+---
+{{- include "common.configmap" .}}
+---
+{{- include "common.job" .}}

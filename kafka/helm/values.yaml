@@ -1,0 +1,103 @@
+namespace: factory
+
+replicaCount: 3
+
+image:
+  name: bitnami/kafka:3.2.3
+  imagePullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+
+podAnnotations: { }
+
+podSecurityContext: { }
+
+securityContext:
+  runAsUser: 0
+
+service:
+  type: LoadBalancer
+  ports:
+    - name: broker
+      port: 9092
+
+statefulset:
+  create: true
+
+ingress:
+  enabled: false
+
+resources: { }
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: { }
+
+tolerations: [ ]
+
+affinity: { }
+
+livenessProbe: { }
+
+readinessProbe: { }
+
+configmap:
+  values:
+    topics: |
+      - AfterBeginCompressorPressureMean
+      - AfterBoilerTemperatureMean
+      - AfterReturnCompressorPressureMean
+      - BeforeBeginCompressorPressureMean
+      - BeforeBoilerTemperatureMean
+      - BeforeReturnCompressorPressureMean
+      - BeginCompressorNoiseAndVibrationMean
+      - BeginGasCompositionMean
+      - BeginTemperatureMean
+      - CompressedReturnFlowRateMean
+      - InputFlowRateMean
+      - InputGasCompositionMean
+      - NotCompressedReturnFlowRateMean
+      - OutputFlowRateMean
+      - OutputGasCompositionMean
+      - ReactionPerformance
+      - ReturnCompressorNoiseAndVibrationMean
+      - ReturnGasCompositionMean
+      - ReturnTemperatureMean
+      - flowRate
+      - gasComposition
+      - noiseAndVibration
+      - pressure
+      - temperature
+
+env:
+  - name: KAFKA_CFG_ZOOKEEPER_CONNECT
+    value: zookeeper-cluster:2181
+  - name: ALLOW_PLAINTEXT_LISTENER
+    value: "yes"
+
+job:
+  image:
+    name: confluentinc/cp-kafka:7.3.2
+  commands: [ "bash", "-c" ]
+  args:
+    - |
+      topics=$(cat /etc/config/topics)
+      bootstrap_server="kafka-cluster:9092"
+      for topic in $topics; do
+        kafka-topics --create --topic ${topic} --partitions 1 --replication-factor 1 --bootstrap-server ${bootstrap_server}
+      done
+  volumeMounts:
+    - name: config-volume
+      mountPath: /etc/config
+  volumes:
+    - name: config-volume
+      configMap:
+        name: kafka-topics-configmap
