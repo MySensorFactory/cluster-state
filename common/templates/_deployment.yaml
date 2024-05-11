@@ -27,7 +27,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .Values.serviceAccount.create -}}
+      {{- if hasKey .Values "serviceAccount" }}
       serviceAccountName: {{ .Values.serviceAccount.name }}
       {{- end }}
       securityContext:
@@ -38,10 +38,12 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: {{ .Values.image.name }}
           imagePullPolicy: {{ .Values.image.imagePullPolicy }}
+          {{- if hasKey .Values "service" }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+          {{- end }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
