@@ -1,0 +1,47 @@
+{{- define "common.job" -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Chart.Name }}-job
+  labels:
+    app: {{ .Chart.Name }}
+    {{- include "helm.labels" . | nindent 4 }}
+spec:
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "helm.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ .Values.job.image.name }}
+          imagePullPolicy: {{ .Values.image.imagePullPolicy }}
+          command:
+            {{- toYaml .Values.job.commands | nindent 12 }}
+          {{- if hasKey .Values.job "args" }}
+          args:
+            {{- toYaml .Values.job.args | nindent 12 }}
+          {{- end }}
+          {{- if hasKey .Values.job "volumeMounts" }}
+          volumeMounts:
+            {{- toYaml .Values.job.volumeMounts | nindent 12 }}
+          {{- end }}
+      restartPolicy: Never
+      {{- if hasKey .Values.job "volumes"}}
+      volumes:
+        {{- toYaml .Values.job.volumes | nindent 8 }}
+      {{- end }}
+{{- end }}
