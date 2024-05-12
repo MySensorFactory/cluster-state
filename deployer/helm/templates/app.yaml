@@ -1,0 +1,7 @@
+{{- include "common.deployment" . }}
+---
+{{- include "common.configmap" .}}
+---
+{{- include "common.clusterRoleBinding" .}}
+---
+{{- include "common.clusterRole" .}}

@@ -1,0 +1,87 @@
+namespace: factory
+
+replicaCount: 1
+
+image:
+  name: juliantheking/deployer
+  imagePullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: deployer-sa
+
+podAnnotations: { }
+
+podSecurityContext: { }
+
+securityContext: { }
+
+ingress:
+  enabled: false
+
+deployment:
+  create: true
+
+resources: { }
+
+autoscaling:
+  enabled: false
+
+nodeSelector: { }
+
+tolerations: [ ]
+
+affinity: { }
+
+livenessProbe: { }
+
+readinessProbe: { }
+
+clusterRole:
+  apiGroups: [ "networking.k8s.io", "apps" , "" ]
+  resources:
+    - componentstatuses
+    - configmaps
+    - daemonsets
+    - deployments
+    - events
+    - endpoints
+    - horizontalpodautoscalers
+    - ingress
+    - jobs
+    - limitranges
+    - namespaces
+    - nodes
+    - pods
+    - persistentvolumes
+    - persistentvolumeclaims
+    - resourcequotas
+    - replicasets
+    - replicationcontrollers
+    - serviceaccounts
+    - services
+  verbs: [ "list", "get", "create", "update", "patch", "bind", "watch", "delete", "deletecollection" ]
+
+clusterRoleBinding:
+  clusterRole: deployer-role
+  subjects: [ 'deployer-sa', 'internal-kubectl' ]
+
+env:
+  - name: AWS_SERVER_PUBLIC_KEY
+    valueFrom:
+      configMapKeyRef:
+        name: deployer-cm
+        key: AWS_SERVER_PUBLIC_KEY
+  - name: AWS_SERVER_SECRET_KEY
+    valueFrom:
+      configMapKeyRef:
+        name: deployer-cm
+        key: AWS_SERVER_SECRET_KEY
+
+configmap:
+  values:
+    AWS_SERVER_PUBLIC_KEY: "abc123"
+    AWS_SERVER_SECRET_KEY: "abc123"
