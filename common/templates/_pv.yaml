@@ -1,0 +1,21 @@
+{{- define "common.persistentVolume" -}}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Chart.Name }}-pv
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    {{- include "helm.labels" . | nindent 4 }}
+spec:
+  capacity:
+    storage: {{ .Values.persistentVolume.capacity }}
+  accessModes: {{ .Values.persistentVolume.accessMode }}
+  persistentVolumeReclaimPolicy: {{ .Values.persistentVolume.reclaimPolicy }}
+  storageClassName: {{ .Values.persistentVolume.storageClassName }}
+  {{- if hasKey .Values.persistentVolume "hostPath" }}
+  hostPath:
+    path: {{ .Values.persistentVolume.hostPath.path }}
+    type: {{ .Values.persistentVolume.hostPath.type }}
+  {{- end }}
+{{- end }}
