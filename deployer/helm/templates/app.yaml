@@ -5,3 +5,5 @@
 {{- include "common.clusterRoleBinding" .}}
 ---
 {{- include "common.clusterRole" .}}
+---
+{{- include "common.serviceAccount" .}}

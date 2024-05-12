@@ -10,7 +10,6 @@ nameOverride: ""
 fullnameOverride: ""
 
 serviceAccount:
-  create: true
   name: deployer-sa
 
 podAnnotations: { }
