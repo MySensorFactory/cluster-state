@@ -1,0 +1,16 @@
+{{- define "common.persistentVolumeClaim" -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Chart.Name }}-pvc
+  labels:
+    app: {{ .Chart.Name }}
+    {{- include "helm.labels" . | nindent 4 }}
+spec:
+  storageClassName: {{ .Values.persistentVolumeClaim.storageClassName }}
+  accessModes: {{ .Values.persistentVolumeClaim.accessModes }}
+  resources:
+    requests:
+      storage: {{ .Values.persistentVolumeClaim.storage }}
+  volumeName: {{ .Chart.Name }}-pv
+{{- end }}
