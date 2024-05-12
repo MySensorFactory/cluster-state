@@ -1,0 +1,80 @@
+namespace: factory
+
+replicaCount: 3
+
+image:
+  name: postgres:14
+  imagePullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+
+podAnnotations: { }
+
+podSecurityContext: { }
+
+securityContext:
+  runAsUser: 0
+
+service:
+  type: ClusterIP
+  ports:
+    - name: tcp
+      port: 5432
+
+statefulset:
+  create: true
+
+ingress:
+  enabled: false
+
+resources: { }
+
+autoscaling:
+  enabled: false
+
+nodeSelector: { }
+
+tolerations: [ ]
+
+affinity: { }
+
+livenessProbe: { }
+
+readinessProbe: { }
+
+volumes:
+  - name: pv-data
+    persistentVolumeClaim:
+      claimName: database-pvc
+
+volumeMounts:
+  - name: pv-data
+    mountPath: /var/lib/postgresql/data
+
+persistentVolume:
+  capacity: 10Gi
+  accessModes: [ ReadWriteOnce ]
+  reclaimPolicy: Retain
+  storageClassName: standard
+  hostPath:
+    path: /database/pgdata
+    type: DirectoryOrCreate
+
+persistentVolumeClaim:
+  storage: 1Gi
+  accessModes: [ ReadWriteOnce ]
+  storageClassName: standard
+
+configmap:
+  values:
+    POSTRGES_DB: $(echo -n "`aws ssm get-parameter --name /CICD/POSTRGES_DB --with-decrypt --region=eu-central-1 --output text --query Parameter.Value`")
+    POSTGRES_USER: $(echo -n "`aws ssm get-parameter --name /CICD/POSTGRES_USER --with-decrypt --region=eu-central-1 --output text --query Parameter.Value`")
+    POSTGRES_PASSWORD: $(echo -n "`aws ssm get-parameter --name /CICD/POSTGRES_PASSWORD --with-decrypt --region=eu-central-1 --output text --query Parameter.Value`")
+
+envFrom:
+  - configMapRef:
+      name: db-credentials
