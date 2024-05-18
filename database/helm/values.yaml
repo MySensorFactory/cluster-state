@@ -1,6 +1,6 @@
 namespace: factory
 
-replicaCount: 3
+replicaCount: 1
 
 image:
   name: postgres:14
@@ -11,8 +11,6 @@ fullnameOverride: ""
 
 serviceAccount:
   create: false
-
-podAnnotations: { }
 
 podSecurityContext: { }
 
@@ -31,8 +29,6 @@ statefulset:
 ingress:
   enabled: false
 
-resources: { }
-
 autoscaling:
   enabled: false
 
@@ -41,10 +37,6 @@ nodeSelector: { }
 tolerations: [ ]
 
 affinity: { }
-
-livenessProbe: { }
-
-readinessProbe: { }
 
 volumes:
   - name: pv-data
@@ -77,4 +69,4 @@ configmap:
 
 envFrom:
   - configMapRef:
-      name: db-credentials
+      name: database-config
