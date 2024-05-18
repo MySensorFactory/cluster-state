@@ -6,11 +6,10 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Chart.Name }}
-    {{- include "helm.labels" . | nindent 4 }}
 spec:
   capacity:
     storage: {{ .Values.persistentVolume.capacity }}
-  accessModes: {{ .Values.persistentVolume.accessMode }}
+  accessModes: {{ .Values.persistentVolume.accessModes }}
   persistentVolumeReclaimPolicy: {{ .Values.persistentVolume.reclaimPolicy }}
   storageClassName: {{ .Values.persistentVolume.storageClassName }}
   {{- if hasKey .Values.persistentVolume "hostPath" }}
