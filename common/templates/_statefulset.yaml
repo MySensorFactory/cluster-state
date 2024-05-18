@@ -4,6 +4,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ .Chart.Name }}-statefulset
+  namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Chart.Name }}
     {{- include "helm.labels" . | nindent 4 }}
@@ -15,9 +16,11 @@ spec:
       app: {{ .Chart.Name }}
   template:
     metadata:
+      {{- if hasKey .Values "podAnnotations" }}
       {{- with .Values.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- end }}
       labels:
         app: {{ .Chart.Name }}
@@ -50,13 +53,19 @@ spec:
                 command:
                   {{- toYaml .Values.postStartCommands | nindent 20 }}
           {{- end }}
+          {{- if hasKey .Values "livenessProbe" }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if hasKey .Values "readinessProbe" }}
           readinessProbe:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
+          {{- end }}
+          {{- if hasKey .Values "resources" }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- if hasKey .Values "env" }}
+          {{- end }}
           env:
             {{- toYaml .Values.env| nindent 12 }}
           {{- end }}
