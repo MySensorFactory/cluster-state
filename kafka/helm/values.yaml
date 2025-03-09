@@ -296,3 +296,21 @@ tolerations: [ ]
 affinity: { }
 livenessProbe: { }
 readinessProbe: { }
+
+ingresses:
+  schema-registry:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/rewrite-target: /
+    hosts:
+      - host: schema-registry.local
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: schema-registry-service
+                port:
+                  name: http
+    tls: []
