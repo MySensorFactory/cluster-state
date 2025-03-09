@@ -1,103 +1,286 @@
 namespace: factory
 
-replicaCount: 3
+replicaCount: 1
 
 image:
-  name: bitnami/kafka:3.2.3
-  imagePullPolicy: Always
+  imagePullPolicy: IfNotPresent
 
 nameOverride: ""
 fullnameOverride: ""
 
 serviceAccount:
   create: false
+  name: ""
 
 podAnnotations: { }
-
-podSecurityContext: { }
 
 securityContext:
   runAsUser: 0
 
-service:
-  type: LoadBalancer
-  ports:
-    - name: broker
-      port: 9092
+services:
+  zookeeper-service:
+    app: zookeeper
+    type: ClusterIP
+    clusterIP: None
+    ports:
+      - name: client
+        port: 2181
 
-statefulset:
-  create: true
+  kafka-broker-1-service:
+    type: ClusterIP
+    app: "kafka-broker-1"
+    clusterIP: None
+    ports:
+      - name: internal
+        port: 9092
+      - name: external
+        port: 19092
 
-ingress:
-  enabled: false
+  kafka-broker-2-service:
+    type: ClusterIP
+    app: kafka-broker-2
+    clusterIP: None
+    ports:
+      - name: internal
+        port: 9092
+      - name: external
+        port: 19092
+
+  kafka-broker-3-service:
+    type: ClusterIP
+    app: kafka-broker-3
+    clusterIP: None
+    ports:
+      - name: internal
+        port: 9092
+      - name: external
+        port: 19092
+
+  schema-registry-service:
+    type: ClusterIP
+    app: schema-registry
+    ports:
+      - name: http
+        port: 8081
+
+statefulsets:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    env:
+      - name: ZOOKEEPER_CLIENT_PORT
+        value: "2181"
+      - name: ZOOKEEPER_TICK_TIME
+        value: "2000"
+    ports:
+      - name: client
+        port: 2181
+    volumeMounts:
+      - name: data
+        mountPath: /var/lib/zookeeper/data
+      - name: log
+        mountPath: /var/lib/zookeeper/log
+    volumes:
+      - name: data
+        hostPath:
+          path: /home/damiano/zookeeper-data
+          type: DirectoryOrCreate
+      - name: log
+        hostPath:
+          path: /home/damiano/zookeeper-log
+          type: DirectoryOrCreate
+    node: damiano
+
+  kafka-broker-1:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka-broker
+    env:
+      - name: KAFKA_BROKER_ID
+        value: "1"
+      - name: KAFKA_ZOOKEEPER_CONNECT
+        value: 'zookeeper-service:2181'
+      - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+        value: PLAINTEXT:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT
+      - name: KAFKA_LISTENERS
+        value: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_EXTERNAL://0.0.0.0:19092
+      - name: KAFKA_ADVERTISED_LISTENERS
+        value: PLAINTEXT://kafka-broker-1-service:9092,PLAINTEXT_EXTERNAL://kafka-cluster.local:9092
+      - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+        value: "3"
+      - name: KAFKA_LOG_RETENTION_HOURS
+        value: "48"
+    ports:
+      - name: internal
+        port: 9092
+      - name: external
+        port: 19092
+    volumeMounts:
+      - name: data
+        mountPath: /var/lib/kafka/data
+    volumes:
+      - name: data
+        hostPath:
+          path: /home/damiano/kafka_data_1
+          type: DirectoryOrCreate
+    node: slave
+
+  kafka-broker-2:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka-broker
+    env:
+      - name: KAFKA_BROKER_ID
+        value: "2"
+      - name: KAFKA_ZOOKEEPER_CONNECT
+        value: 'zookeeper-service:2181'
+      - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+        value: PLAINTEXT:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT
+      - name: KAFKA_LISTENERS
+        value: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_EXTERNAL://0.0.0.0:19092
+      - name: KAFKA_ADVERTISED_LISTENERS
+        value: PLAINTEXT://kafka-broker-2-service:9092,PLAINTEXT_EXTERNAL://kafka-cluster.local:9093
+      - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+        value: "3"
+      - name: KAFKA_LOG_RETENTION_HOURS
+        value: "48"
+    ports:
+      - name: internal
+        port: 9092
+      - name: external
+        port: 19092
+    volumeMounts:
+      - name: data
+        mountPath: /var/lib/kafka/data
+    volumes:
+      - name: data
+        hostPath:
+          path: /home/damiano/kafka_data_2
+          type: DirectoryOrCreate
+    node: slave
+
+  kafka-broker-3:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka-broker
+    env:
+      - name: KAFKA_BROKER_ID
+        value: "3"
+      - name: KAFKA_ZOOKEEPER_CONNECT
+        value: 'zookeeper-service:2181'
+      - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+        value: PLAINTEXT:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT
+      - name: KAFKA_LISTENERS
+        value: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_EXTERNAL://0.0.0.0:19092
+      - name: KAFKA_ADVERTISED_LISTENERS
+        value: PLAINTEXT://kafka-broker-3-service:9092,PLAINTEXT_EXTERNAL://kafka-cluster.local:9094
+      - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+        value: "3"
+      - name: KAFKA_LOG_RETENTION_HOURS
+        value: "48"
+    ports:
+      - name: internal
+        port: 9092
+      - name: external
+        port: 19092
+    volumeMounts:
+      - name: data
+        mountPath: /var/lib/kafka/data
+    volumes:
+      - name: data
+        hostPath:
+          path: /home/damiano/kafka_data_3
+          type: DirectoryOrCreate
+    node: damiano
+
+deployments:
+  schema-registry:
+    image: confluentinc/cp-schema-registry:latest
+    env:
+      - name: SCHEMA_REGISTRY_HOST_NAME
+        value: "schema-registry"  # Changed from schema-registry-service
+      - name: SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL
+        value: 'zookeeper-service:2181'
+      - name: SCHEMA_REGISTRY_LISTENERS
+        value: http://0.0.0.0:8081  # Changed from schema-registry-service:8081
+      - name: SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS
+        value: PLAINTEXT://kafka-broker-1-service:9092,PLAINTEXT://kafka-broker-2-service:9092,PLAINTEXT://kafka-broker-3-service:9092
+      - name: SCHEMA_REGISTRY_DEBUG
+        value: 'true'
+      - name: SCHEMA_REGISTRY_SCHEMA_COMPATIBILITY_LEVEL
+        value: "none"
+    ports:
+      - name: http
+        port: 8081
+
+# ConfigMap definitions
+configmaps:
+  kafka-topics-configmap:
+    values:
+      topics: |
+        AfterBeginCompressorPressureMean
+        AfterBoilerTemperatureMean
+        AfterReturnCompressorPressureMean
+        BeforeBeginCompressorPressureMean
+        BeforeBoilerTemperatureMean
+        BeforeReturnCompressorPressureMean
+        BeginCompressorNoiseAndVibrationMean
+        BeginGasCompositionMean
+        BeginTemperatureMean
+        CompressedReturnFlowRateMean
+        InputFlowRateMean
+        InputGasCompositionMean
+        NotCompressedReturnFlowRateMean
+        OutputFlowRateMean
+        OutputGasCompositionMean
+        ReactionPerformance
+        ReturnCompressorNoiseAndVibrationMean
+        ReturnGasCompositionMean
+        ReturnTemperatureMean
+        flowRate
+        gasComposition
+        noiseAndVibration
+        pressure
+        temperature
+
+# Job definitions
+jobs:
+  create-topics:
+    create: true
+    image:
+      name: confluentinc/cp-kafka:7.3.2
+    initContainers:
+      - name: wait-for-kafka
+        image: confluentinc/cp-kafka:7.3.2
+        command:
+          - /bin/bash
+          - -c
+          - |
+            until kafka-broker-api-versions.sh --bootstrap-server kafka-broker-1-service:9092,kafka-broker-2-service:9092,kafka-broker-3-service:9092; do
+              echo "Waiting for Kafka brokers to be ready..."
+              sleep 5
+            done
+    commands:
+      - "bash"
+      - "-c"
+    args:
+      - |
+        echo "Creating Kafka topics..."
+        topics=$(cat /config/topics)
+        for topic in $topics; do
+          kafka-topics.sh --create --if-not-exists \
+            --bootstrap-server kafka-broker-1-service:9092,kafka-broker-2-service:9092,kafka-broker-3-service:9092 \
+            --replication-factor 3 \
+            --partitions 3 \
+            --topic $topic
+        done
+    volumeMounts:
+      - name: topics-config
+        mountPath: /config
+    volumes:
+      - name: topics-config
+        configMap:
+          name: kafka-topics-configmap
 
 resources: { }
-
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 3
-  targetCPUUtilizationPercentage: 80
-
 nodeSelector: { }
-
 tolerations: [ ]
-
 affinity: { }
-
 livenessProbe: { }
-
 readinessProbe: { }
-
-configmap:
-  values:
-    topics: |
-      - AfterBeginCompressorPressureMean
-      - AfterBoilerTemperatureMean
-      - AfterReturnCompressorPressureMean
-      - BeforeBeginCompressorPressureMean
-      - BeforeBoilerTemperatureMean
-      - BeforeReturnCompressorPressureMean
-      - BeginCompressorNoiseAndVibrationMean
-      - BeginGasCompositionMean
-      - BeginTemperatureMean
-      - CompressedReturnFlowRateMean
-      - InputFlowRateMean
-      - InputGasCompositionMean
-      - NotCompressedReturnFlowRateMean
-      - OutputFlowRateMean
-      - OutputGasCompositionMean
-      - ReactionPerformance
-      - ReturnCompressorNoiseAndVibrationMean
-      - ReturnGasCompositionMean
-      - ReturnTemperatureMean
-      - flowRate
-      - gasComposition
-      - noiseAndVibration
-      - pressure
-      - temperature
-
-env:
-  - name: KAFKA_CFG_ZOOKEEPER_CONNECT
-    value: zookeeper-cluster:2181
-  - name: ALLOW_PLAINTEXT_LISTENER
-    value: "yes"
-
-job:
-  image:
-    name: confluentinc/cp-kafka:7.3.2
-  commands: [ "bash", "-c" ]
-  args:
-    - |
-      topics=$(cat /etc/config/topics)
-      bootstrap_server="kafka-cluster:9092"
-      for topic in $topics; do
-        kafka-topics --create --topic ${topic} --partitions 1 --replication-factor 1 --bootstrap-server ${bootstrap_server}
-      done
-  volumeMounts:
-    - name: config-volume
-      mountPath: /etc/config
-  volumes:
-    - name: config-volume
-      configMap:
-        name: kafka-topics-configmap

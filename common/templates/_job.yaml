@@ -1,47 +1,51 @@
 {{- define "common.job" -}}
+{{- range $name, $job := .Values.jobs }}
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Chart.Name }}-job
+  name: {{ $name }}
+  namespace: {{ $.Values.namespace }}
   labels:
-    app: {{ .Chart.Name }}
-    {{- include "helm.labels" . | nindent 4 }}
+    app: {{ $name }}
+    {{- include "helm.labels" $ | nindent 4 }}
 spec:
+  backoffLimit: 5
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       labels:
-        app: {{ .Chart.Name }}
+        app: {{ $name }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
+      {{- with $.Values.securityContext }}
+      securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "helm.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.securityContext | nindent 8 }}
-      containers:
-        - name: {{ .Chart.Name }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: {{ .Values.job.image.name }}
-          imagePullPolicy: {{ .Values.image.imagePullPolicy }}
-          command:
-            {{- toYaml .Values.job.commands | nindent 12 }}
-          {{- if hasKey .Values.job "args" }}
-          args:
-            {{- toYaml .Values.job.args | nindent 12 }}
-          {{- end }}
-          {{- if hasKey .Values.job "volumeMounts" }}
-          volumeMounts:
-            {{- toYaml .Values.job.volumeMounts | nindent 12 }}
-          {{- end }}
-      restartPolicy: Never
-      {{- if hasKey .Values.job "volumes"}}
-      volumes:
-        {{- toYaml .Values.job.volumes | nindent 8 }}
+      restartPolicy: OnFailure
+      {{- if $job.initContainers }}
+      initContainers:
+        {{- toYaml $job.initContainers | nindent 8 }}
       {{- end }}
+      containers:
+        - name: {{ $name }}
+          image: {{ $job.image.name }}
+          command: {{ toYaml $job.commands | nindent 12 }}
+          args: {{ toYaml $job.args | nindent 12 }}
+          {{- if $job.volumeMounts }}
+          volumeMounts:
+            {{- range $mount := $job.volumeMounts }}
+            - name: {{ $mount.name }}
+              mountPath: {{ $mount.mountPath }}
+            {{- end }}
+          {{- end }}
+      {{- if $job.volumes }}
+      volumes:
+        {{- range $volume := $job.volumes }}
+        - name: {{ $volume.name }}
+          {{- if $volume.configMap }}
+          configMap:
+            name: {{ $volume.configMap.name }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+{{- end }}
 {{- end }}
