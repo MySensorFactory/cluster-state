@@ -5,37 +5,12 @@ controller:
   service:
     type: LoadBalancer
     ports:
-      http: 
-        port: 80
-        targetPort: http
-        protocol: TCP
-      https: 
-        port: 443
-        targetPort: https
-        protocol: TCP
-      kafka1: 
-        port: 9092
-        targetPort: 9092
-        protocol: TCP
-      kafka2: 
-        port: 9093
-        targetPort: 9093
-        protocol: TCP
-      kafka3:
-        port: 9094
-        targetPort: 9094
-        protocol: TCP
-      postgresql:
-        port: 5432
-        targetPort: 5432
-        protocol: TCP
-    
+      http: 80
+      https: 443
     enableTCP: true
-    tcp:
-      9092: "factory/kafka-broker-1-service:19092"
-      9093: "factory/kafka-broker-2-service:19092"
-      9094: "factory/kafka-broker-3-service:19092"
-      5432: "factory/database-svc:5432"
+    nodePorts:
+      tcp:
+        "5432": 32432
 
 addHeaders: {}
 affinity: {}
@@ -227,9 +202,32 @@ defaultBackend:
     }
   service:
     annotations: {}
+    clusterIP: ""
+    externalIPs: []
+    externalTrafficPolicy: ""
+    extraPorts: []
+    healthCheckNodePort: 0
+    ipFamilies: []
+    ipFamilyPolicy: ""
+    labels: {}
+    loadBalancerClass: ""
+    loadBalancerIP: ""
+    loadBalancerSourceRanges: []
+    nodePorts:
+      http: ""
+      https: ""
+      tcp: 
+        "5432": 32432
+      udp: {}
     ports:
       http: 80
-    type: ClusterIP
+      https: 443
+    sessionAffinity: None
+    sessionAffinityConfig: {}
+    targetPorts:
+      http: http
+      https: https
+    type: LoadBalancer
   sidecars: []
   startupProbe:
     enabled: false
@@ -378,33 +376,6 @@ schedulerName: ""
 scope:
   enabled: false
   namespace: ""
-service:
-  annotations: {}
-  clusterIP: ""
-  externalIPs: []
-  externalTrafficPolicy: ""
-  extraPorts: []
-  healthCheckNodePort: 0
-  ipFamilies: []
-  ipFamilyPolicy: ""
-  labels: {}
-  loadBalancerClass: ""
-  loadBalancerIP: ""
-  loadBalancerSourceRanges: []
-  nodePorts:
-    http: ""
-    https: ""
-    tcp: {}
-    udp: {}
-  ports:
-    http: 80
-    https: 443
-  sessionAffinity: None
-  sessionAffinityConfig: {}
-  targetPorts:
-    http: http
-    https: https
-  type: LoadBalancer
 serviceAccount:
   annotations: {}
   automountServiceAccountToken: false
@@ -419,7 +390,11 @@ startupProbe:
   successThreshold: 1
   timeoutSeconds: 1
 svcPortNamesPrefix: ""
-tcp: {}
+tcp:
+  "5432": "factory/database-svc:5432"
+  "9092": "factory/kafka-broker-1-service:19092"
+  "9093": "factory/kafka-broker-2-service:19092"
+  "9094": "factory/kafka-broker-3-service:19092"
 tcpConfigMapNamespace: ""
 terminationGracePeriodSeconds: 60
 tolerations: []
