@@ -1,4 +1,5 @@
 {{- define "common.ingress" -}}
+{{- if .Values.ingresses }}
 {{- range $name, $ingress := .Values.ingresses }}
 {{- if $ingress.enabled -}}
 {{- $fullName := printf "%s-%s" $.Release.Name $name -}}
@@ -44,5 +45,6 @@ spec:
                   {{- end }}
           {{- end }}
     {{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
