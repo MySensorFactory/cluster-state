@@ -21,33 +21,11 @@ deployments:
   kafka-db-forwarder:
     image: your-registry/kafka-db-forwarder:latest  # You'll need to update this
     env:
-      - name: KAFKA_BOOTSTRAP_SERVERS
-        value: "PLAINTEXT://kafka-broker-1-service:9092,PLAINTEXT://kafka-broker-2-service:9092,PLAINTEXT://kafka-broker-3-service:9092"
-      - name: KAFKA_GROUP_ID
-        value: "db-forwarder-group"
-      - name: SCHEMA_REGISTRY_URL
-        value: "http://schema-registry-service:8081"
-      - name: DB_HOST
-        value: "database-svc"
-      - name: DB_PORT
-        value: "5432"
-      - name: DB_NAME
-        valueFrom:
-          configMapKeyRef:
-            name: db-credentials
-            key: POSTGRES_DB
-      - name: DB_USER
-        valueFrom:
-          configMapKeyRef:
-            name: db-credentials
-            key: POSTGRES_USER
-      - name: DB_PASSWORD
-        valueFrom:
-          configMapKeyRef:
-            name: db-credentials
-            key: POSTGRES_PASSWORD
       - name: SPRING_CONFIG_LOCATION
         value: /config/application.yaml
+    envFrom:
+      - configMapRef:
+          name: db-credentials
     ports:
       - name: metrics
         port: 8080
@@ -72,6 +50,9 @@ configmaps:
     values:
       application.yaml: |-
         kafka:
+          bootstrap-servers: PLAINTEXT://kafka-broker-1-service:9092,PLAINTEXT://kafka-broker-2-service:9092,PLAINTEXT://kafka-broker-3-service:9092
+          schema-registry-url: http://schema-registry-service:8081
+          group-id: db-forwarder-group
           config:
             pressure:
               enabled: true
@@ -105,12 +86,12 @@ configmaps:
               groupId: compressorStateGroup
         spring:
           kafka:
-            bootstrap-servers: kafka-broker-1-service:9092,kafka-broker-2-service:9092,kafka-broker-3-service:9092
+            bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
             producer:
-              bootstrap-servers: kafka-broker-1-service:9092,kafka-broker-2-service:9092,kafka-broker-3-service:9092
+              bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
             consumer:
               value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
-              bootstrap-servers: kafka-broker-1-service:9092,kafka-broker-2-service:9092,kafka-broker-3-service:9092
+              bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
               auto-offset-reset: latest
               isolation-level: read_committed
               group-id: dbForwarderGroup
@@ -119,7 +100,7 @@ configmaps:
             properties:
               schema:
                 registry:
-                  url: http://schema-registry-service:8081
+                  url: ${SCHEMA_REGISTRY_URL}
               specific:
                 avro:
                   reader: true
@@ -128,9 +109,9 @@ configmaps:
                   name:
                     strategy: io.confluent.kafka.serializers.subject.RecordNameStrategy
           datasource:
-            url: jdbc:postgresql://database-svc:5432/${DB_NAME}
-            username: ${DB_USER}
-            password: ${DB_PASSWORD}
+            url: jdbc:postgresql://database-svc:5432/${POSTGRES_DB}
+            username: ${POSTGRES_USER}
+            password: ${POSTGRES_PASSWORD}
           jpa:
             properties:
               hibernate:
