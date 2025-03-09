@@ -194,11 +194,11 @@ deployments:
     image: confluentinc/cp-schema-registry:latest
     env:
       - name: SCHEMA_REGISTRY_HOST_NAME
-        value: "schema-registry"  # Changed from schema-registry-service
+        value: "schema-registry" 
       - name: SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL
         value: 'zookeeper-service:2181'
       - name: SCHEMA_REGISTRY_LISTENERS
-        value: http://0.0.0.0:8081  # Changed from schema-registry-service:8081
+        value: http://0.0.0.0:8081 
       - name: SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS
         value: PLAINTEXT://kafka-broker-1-service:9092,PLAINTEXT://kafka-broker-2-service:9092,PLAINTEXT://kafka-broker-3-service:9092
       - name: SCHEMA_REGISTRY_DEBUG
@@ -209,7 +209,6 @@ deployments:
       - name: http
         port: 8081
 
-# ConfigMap definitions
 configmaps:
   kafka-topics-configmap:
     values:
@@ -239,7 +238,6 @@ configmaps:
         pressure
         temperature
 
-# Job definitions
 jobs:
   create-topics:
     create: true
@@ -252,24 +250,38 @@ jobs:
           - /bin/bash
           - -c
           - |
-            until kafka-broker-api-versions.sh --bootstrap-server kafka-broker-1-service:9092,kafka-broker-2-service:9092,kafka-broker-3-service:9092; do
+            until kafka-topics --bootstrap-server kafka-broker-1-service:9092 --list; do
               echo "Waiting for Kafka brokers to be ready..."
               sleep 5
             done
     commands:
-      - "bash"
-      - "-c"
-    args:
+      - /bin/bash
+      - -c
       - |
-        echo "Creating Kafka topics..."
-        topics=$(cat /config/topics)
-        for topic in $topics; do
-          kafka-topics.sh --create --if-not-exists \
-            --bootstrap-server kafka-broker-1-service:9092,kafka-broker-2-service:9092,kafka-broker-3-service:9092 \
-            --replication-factor 3 \
-            --partitions 3 \
-            --topic $topic
-        done
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic AfterBeginCompressorPressureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic AfterBoilerTemperatureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic AfterReturnCompressorPressureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic BeforeBeginCompressorPressureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic BeforeBoilerTemperatureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic BeforeReturnCompressorPressureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic BeginCompressorNoiseAndVibrationMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic BeginGasCompositionMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic BeginTemperatureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic CompressedReturnFlowRateMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic InputFlowRateMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic InputGasCompositionMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic NotCompressedReturnFlowRateMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic OutputFlowRateMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic OutputGasCompositionMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic ReactionPerformance --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic ReturnCompressorNoiseAndVibrationMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic ReturnGasCompositionMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic ReturnTemperatureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic flowRate --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic gasComposition --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic noiseAndVibration --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic pressure --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic temperature --partitions 1 --replication-factor 3
     volumeMounts:
       - name: topics-config
         mountPath: /config
