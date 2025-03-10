@@ -1,77 +1,42 @@
 {{- define "common.deployment" -}}
-{{- if .Values.deployment.create -}}
+{{- range $name, $deployment := .Values.deployments }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Chart.Name }}-deployment
-  namespace: {{ .Values.namespace }}
+  name: {{ $name }}
+  namespace: {{ $.Values.namespace }}
   labels:
-    app: {{ .Chart.Name }}
-    {{- include "helm.labels" . | nindent 4 }}
+    app: {{ $name }}
+    {{- include "helm.labels" $ | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: 1
   selector:
     matchLabels:
-      app: {{ .Chart.Name }}
+      app: {{ $name }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       labels:
-        app: {{ .Chart.Name }}
+        app: {{ $name }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- if hasKey .Values "serviceAccount" }}
-      serviceAccountName: {{ .Values.serviceAccount.name }}
-      {{- end }}
+      {{- with $.Values.securityContext }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
-        - name: {{ .Chart.Name }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: {{ .Values.image.name }}
-          imagePullPolicy: {{ .Values.image.imagePullPolicy }}
-          {{- if hasKey .Values "service" }}
+        - name: {{ $name }}
+          image: {{ $deployment.image }}
           ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
+            {{- range $deployment.ports }}
+            - containerPort: {{ .port }}
               protocol: TCP
-          {{- end }}
-          livenessProbe:
-            {{- toYaml .Values.livenessProbe | nindent 12 }}
-          readinessProbe:
-            {{- toYaml .Values.readinessProbe | nindent 12 }}
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-          {{- with .Values.volumeMounts }}
-          volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            {{- end }}
+          {{- if $deployment.env }}
           env:
-            {{- toYaml .Values.env| nindent 12 }}
-      {{- with .Values.volumes }}
-      volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+            {{- range $entry := $deployment.env }}
+            - name: {{ $entry.name }}
+              value: {{ $entry.value | quote }}
+            {{- end }}
+          {{- end }}
 {{- end }}
-  {{- end}}
+{{- end }}
