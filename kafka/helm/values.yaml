@@ -57,11 +57,12 @@ services:
         port: 19092
 
   schema-registry-service:
-    type: ClusterIP
+    type: NodePort
     app: schema-registry
     ports:
       - name: port-http
         port: 8081
+        nodePort: 30081
 
 statefulsets:
   zookeeper:
