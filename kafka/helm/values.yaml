@@ -297,25 +297,23 @@ affinity: { }
 livenessProbe: { }
 readinessProbe: { }
 
-ingresses:
-  schema-registry:
-    enabled: true
-    className: nginx
-    annotations:
-      kubernetes.io/ingress.class: nginx
-      nginx.ingress.kubernetes.io/rewrite-target: /
-      nginx.ingress.kubernetes.io/ssl-redirect: "false"
-      nginx.ingress.kubernetes.io/use-regex: "true"
-      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-      nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
-    hosts:
-      - host: schema-registry.local
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: schema-registry-service
-                port:
-                  name: port-http
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+  hosts:
+    - host: schema-registry.local
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: schema-registry-service
+              port:
+                name: port-http
     tls: []
