@@ -2,16 +2,20 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ .Chart.Name }}-pvc
+  name: {{ .Values.persistentVolumeClaim.name | default (printf "%s-pvc" .Chart.Name) }}
   namespace: {{ .Values.namespace }}
   labels:
+    {{- if .Values.persistentVolumeClaim.labels }}
+    {{- toYaml .Values.persistentVolumeClaim.labels | nindent 4 }}
+    {{- else }}
     app: {{ .Chart.Name }}
     {{- include "helm.labels" . | nindent 4 }}
+    {{- end }}
 spec:
   storageClassName: {{ .Values.persistentVolumeClaim.storageClassName }}
   accessModes: {{ .Values.persistentVolumeClaim.accessModes }}
   resources:
     requests:
       storage: {{ .Values.persistentVolumeClaim.storage }}
-  volumeName: {{ .Chart.Name }}-pv
+  volumeName: {{ .Values.persistentVolume.name | default (printf "%s-pv" .Chart.Name) }}
 {{- end }}
