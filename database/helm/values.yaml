@@ -3,70 +3,87 @@ namespace: factory
 replicaCount: 1
 
 image:
-  name: postgres:14
-  imagePullPolicy: Always
+  imagePullPolicy: IfNotPresent
 
 nameOverride: ""
 fullnameOverride: ""
 
 serviceAccount:
   create: false
+  name: ""
 
-podSecurityContext: { }
+podAnnotations: {}
 
-securityContext:
-  runAsUser: 0
+securityContext: {}
 
-service:
-  type: ClusterIP
-  ports:
-    - name: tcp
-      port: 5432
+services:
+  database-svc:
+    app: database
+    type: ClusterIP
+    ports:
+      - name: database
+        port: 5432
 
-statefulset:
-  create: true
+statefulsets:
+  database-statefulset:
+    app: database
+    image: postgres:16
+    containerName: postgres
+    serviceName: database-svc
+    podManagementPolicy: OrderedReady
+    persistentVolumeClaimRetentionPolicy:
+      whenDeleted: Retain
+      whenScaled: Retain
+    ports:
+      - name: database
+        port: 5432
+    volumeMounts:
+      - name: pv-data
+        mountPath: /var/lib/postgresql/data
+    volumes:
+      - name: pv-data
+        persistentVolumeClaim:
+          claimName: database-pvc
+    node: slave
+    envFrom:
+      - configMapRef:
+          name: db-credentials
 
-ingress:
-  enabled: false
-
-autoscaling:
-  enabled: false
-
-nodeSelector: { }
-
-tolerations: [ ]
-
-affinity: { }
-
-volumes:
-  - name: pv-data
-    persistentVolumeClaim:
-      claimName: database-pvc
-
-volumeMounts:
-  - name: pv-data
-    mountPath: /var/lib/postgresql/data
+configmaps:
+  db-credentials:
+    values:
+      PGDATA: /var/lib/postgresql/data/_data
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
 
 persistentVolume:
-  capacity: 10Gi
+  name: database-pv
+  capacity: 30Gi
   accessModes: [ ReadWriteOnce ]
   reclaimPolicy: Retain
-  storageClassName: standard
-  hostPath:
-    path: /database/pgdata
-    type: DirectoryOrCreate
+  storageClassName: local-storage
+  volumeMode: Filesystem
+  local:
+    path: /home/damiano/damiano_postgres_data_16
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - slave
 
 persistentVolumeClaim:
-  storage: 1Gi
+  name: database-pvc
+  storage: 30Gi
   accessModes: [ ReadWriteOnce ]
-  storageClassName: standard
+  storageClassName: local-storage
 
-configmap:
-  values:
-    POSTRGES_DB: $(echo -n "`aws ssm get-parameter --name /CICD/POSTRGES_DB --with-decrypt --region=eu-central-1 --output text --query Parameter.Value`")
-    POSTGRES_USER: $(echo -n "`aws ssm get-parameter --name /CICD/POSTGRES_USER --with-decrypt --region=eu-central-1 --output text --query Parameter.Value`")
-    POSTGRES_PASSWORD: $(echo -n "`aws ssm get-parameter --name /CICD/POSTGRES_PASSWORD --with-decrypt --region=eu-central-1 --output text --query Parameter.Value`")
-
-envFrom:
-  - configMapRef:
-      name: database-config
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+livenessProbe: {}
+readinessProbe: {}
