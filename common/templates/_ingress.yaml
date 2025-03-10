@@ -5,7 +5,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ $name }}
-  namespace: $.Values.namespace
+  namespace: {{ $.Values.namespace }}
   annotations:
     {{- toYaml $ingress.annotations | nindent 4 }}
 spec:
@@ -20,9 +20,17 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
+                {{- if .backend.service.name }}
+                name: {{ .backend.service.name }}
+                {{- else }}
                 name: {{ $name }}-service
+                {{- end }}
                 port:
+                  {{- if .backend.service.port.name }}
                   name: {{ .backend.service.port.name }}
+                  {{- else if .backend.service.port.number }}
+                  number: {{ .backend.service.port.number }}
+                  {{- end }}
         {{- end }}
   {{- end }}
 {{- end }}

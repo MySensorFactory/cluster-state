@@ -1,26 +1,30 @@
 {{- define "common.service" -}}
+{{- range $name, $service := .Values.services }}
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Chart.Name }}-svc
-  namespace: {{ .Values.namespace }}
+  name: {{ $name }}
+  namespace: {{ $.Values.namespace }}
   labels:
-    {{- include "helm.labels" . | nindent 4 }}
+    app: {{ $service.app }}
+    {{- include "helm.labels" $ | nindent 4 }}
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ $service.type }}
+  {{- if $service.clusterIP }}
+  clusterIP: {{ $service.clusterIP }}
+  {{- end }}
   ports:
-    {{- range .Values.service.ports }}
-    - name: {{ .name }}
-      protocol: TCP
-      port: {{ .port }}
+    {{- range $service.ports }}
+    - port: {{ .port }}
       targetPort: {{ .port }}
-      {{- if eq $.Values.service.type "NodePort" }}
-      nodePort: {{ .nodePort }}
+      protocol: TCP
+      name: port-{{ .name }}
+      {{- if .nodePort }}
+      nodePort:  {{ .nodePort }}
       {{- end }}
-      {{- end }}
+    {{- end }}
   selector:
-    app: {{ .Chart.Name }}
-  {{- if hasKey .Values.service "clusterIP" }}
-  clusterIP: {{ .Values.service.clusterIP }}
-  {{- end }}
-  {{- end }}
+    app: {{ $service.app }}
+{{- end }}
+{{- end }}
