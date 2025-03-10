@@ -36,7 +36,11 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
+                {{- if .backend.service.name }}
+                name: {{ .backend.service.name }}
+                {{- else }}
                 name: {{ $name }}-service
+                {{- end }}
                 port:
                   {{- if .backend.service.port.name }}
                   name: {{ .backend.service.port.name }}
