@@ -19,10 +19,14 @@ securityContext:
 
 deployments:
   kafka-db-forwarder:
-    image: your-registry/kafka-db-forwarder:latest  # You'll need to update this
+    image: juliantheking/kafka-db-forwarder
     env:
       - name: SPRING_CONFIG_LOCATION
         value: /config/application.yaml
+      - name: KAFKA_BOOTSTRAP_SERVERS
+        value: PLAINTEXT://kafka-broker-1-service:9092,PLAINTEXT://kafka-broker-2-service:9092,PLAINTEXT://kafka-broker-3-service:9092
+      - name: SCHEMA_REGISTRY_URL
+        value: http://schema-registry-service:8081
     envFrom:
       - configMapRef:
           name: db-credentials
