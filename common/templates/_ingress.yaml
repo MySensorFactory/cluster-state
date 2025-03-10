@@ -1,8 +1,8 @@
 {{- define "common.ingress" -}}
 {{- if .Values.ingresses }}
 {{- range $name, $ingress := .Values.ingresses }}
-{{- if $ingress.enabled -}}
-{{- $fullName := printf "%s-%s" $.Release.Name $name -}}
+{{- if $ingress.enabled }}
+{{- $fullName := printf "%s-%s" $.Release.Name $name }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
