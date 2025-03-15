@@ -89,4 +89,7 @@ ingresses:
                 name: keycloak-svc
                 port:
                   name: port-http
-    tls: []
+    tls:
+      - secretName: cluster-ui-tls
+        hosts:
+        - keycloak.local

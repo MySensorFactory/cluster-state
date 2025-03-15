@@ -81,7 +81,10 @@ ingresses:
                 name: front-service-svc
                 port:
                   name: port-http
-    tls: []
+    tls:
+      - secretName: front-service-tls
+        hosts:
+        - front-service.local
 
 configmaps:
   front-service-config:
@@ -161,10 +164,7 @@ configmaps:
             - '/docs/users'
           allowedOrigins:
             - 'http://localhost:3000'
-            - 'http://localhost:8080'
-            - 'http://localhost:8081'
-            - 'http://localhost:8082'
-            - 'http://localhost:8083'
+            - 'https://cluster-ui.local'
 
         clients:
           user:

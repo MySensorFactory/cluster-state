@@ -26,17 +26,17 @@ deployments:
     imagePullPolicy: IfNotPresent
     env:
       - name: REACT_APP_KEYCLOAK_URL
-        value: http://keycloak.local/auth
+        value: https://keycloak.local/auth
       - name: REACT_APP_KEYCLOAK_REALM
         value: FactoryRealm
       - name: REACT_APP_CLIENT_ID
         value: login-app
       - name: REACT_APP_HOME_API_BASE_URL
-        value: http://front-service.local/data/home
+        value: https://front-service.local/data/home
       - name: REACT_APP_REPORTS_API_BASE_URL
-        value: http://front-service.local/data
+        value: https://front-service.local/data
       - name: REACT_APP_CONFIG_API_BASE_URL
-        value: http://front-service.local/data
+        value: https://front-service.local/data
       - name: WDS_SOCKET_PORT
         value: "0"
     ports:
@@ -74,7 +74,11 @@ ingresses:
                 name: cluster-ui-svc
                 port:
                   number: 3000
-    tls: []
+    tls:
+      - secretName: cluster-ui-tls
+        hosts:
+        - cluster-ui.local
+        
 
 resources:
   limits:
