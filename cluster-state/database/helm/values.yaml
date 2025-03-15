@@ -1,0 +1,89 @@
+namespace: factory
+
+replicaCount: 1
+
+image:
+  imagePullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  name: ""
+
+podAnnotations: {}
+
+securityContext: {}
+
+services:
+  database-svc:
+    app: database
+    type: ClusterIP
+    ports:
+      - name: database
+        port: 5432
+
+statefulsets:
+  database-statefulset:
+    app: database
+    image: postgres:16
+    containerName: postgres
+    serviceName: database-svc
+    podManagementPolicy: OrderedReady
+    persistentVolumeClaimRetentionPolicy:
+      whenDeleted: Retain
+      whenScaled: Retain
+    ports:
+      - name: database
+        port: 5432
+    volumeMounts:
+      - name: pv-data
+        mountPath: /var/lib/postgresql/data
+    volumes:
+      - name: pv-data
+        persistentVolumeClaim:
+          claimName: database-pvc
+    node: slave
+    envFrom:
+      - configMapRef:
+          name: db-credentials
+
+configmaps:
+  db-credentials:
+    values:
+      PGDATA: /var/lib/postgresql/data/_data
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
+
+persistentVolume:
+  name: database-pv
+  capacity: 30Gi
+  accessModes: [ ReadWriteOnce ]
+  reclaimPolicy: Retain
+  storageClassName: local-storage
+  volumeMode: Filesystem
+  local:
+    path: /home/damiano/damiano_postgres_data_16
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - slave
+
+persistentVolumeClaim:
+  name: database-pvc
+  storage: 30Gi
+  accessModes: [ ReadWriteOnce ]
+  storageClassName: local-storage
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+livenessProbe: {}
+readinessProbe: {}

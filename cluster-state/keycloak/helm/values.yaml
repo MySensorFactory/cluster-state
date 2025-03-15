@@ -1,0 +1,92 @@
+namespace: factory
+
+replicaCount: 1
+
+image:
+  name: quay.io/keycloak/keycloak:legacy
+  imagePullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  name: ""
+
+podAnnotations: {}
+
+securityContext:
+  runAsUser: 0
+
+deployments:
+  keycloak:
+    image: quay.io/keycloak/keycloak:legacy
+    ports:
+      - name: http
+        port: 8080
+    env:
+      - name: DB_VENDOR
+        value: POSTGRES
+      - name: DB_ADDR
+        value: database-svc
+      - name: DB_DATABASE
+        value: keycloak
+      - name: DB_USER
+        value: keycloak
+      - name: DB_SCHEMA
+        value: public
+      - name: DB_PASSWORD
+        value: password
+      - name: KEYCLOAK_USER
+        value: admin
+      - name: KEYCLOAK_PASSWORD
+        value: Pa55w0rd
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    livenessProbe:
+      httpGet:
+        path: /auth/realms/master
+        port: http
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readinessProbe:
+      httpGet:
+        path: /auth/realms/master
+        port: http
+      initialDelaySeconds: 15
+      periodSeconds: 5
+
+services:
+  keycloak-svc:
+    app: keycloak
+    type: ClusterIP
+    ports:
+      - name: http
+        port: 8080
+        targetPort: 8080
+
+ingresses:
+  keycloak-ingress:
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      nginx.ingress.kubernetes.io/ssl-redirect: "false"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+      nginx.ingress.kubernetes.io/use-regex: "true"
+    hosts:
+      - host: keycloak.local
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak-svc
+                port:
+                  name: port-http
+    tls: []

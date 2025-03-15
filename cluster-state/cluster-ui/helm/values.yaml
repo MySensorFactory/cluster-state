@@ -1,0 +1,115 @@
+namespace: factory
+
+replicaCount: 1
+
+image:
+  name: juliantheking/cluster-ui
+  imagePullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext:
+  runAsUser: 0
+
+deployments:
+  cluster-ui:
+    image: juliantheking/cluster-ui
+    imagePullPolicy: IfNotPresent
+    env:
+      - name: REACT_APP_KEYCLOAK_URL
+        value: http://keycloak.local/auth
+      - name: REACT_APP_KEYCLOAK_REALM
+        value: FactoryRealm
+      - name: REACT_APP_CLIENT_ID
+        value: login-app
+      - name: REACT_APP_HOME_API_BASE_URL
+        value: http://front-service.local/data/home
+      - name: REACT_APP_REPORTS_API_BASE_URL
+        value: http://front-service.local/data
+      - name: REACT_APP_CONFIG_API_BASE_URL
+        value: http://front-service.local/data
+      - name: WDS_SOCKET_PORT
+        value: "0"
+    ports:
+      - name: http
+        port: 3000
+        targetPort: 3000
+
+services:
+  cluster-ui-svc:
+    app: cluster-ui
+    type: ClusterIP
+    ports:
+      - name: http
+        port: 3000
+        targetPort: 3000
+
+ingresses:
+  cluster-ui-ingress:
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "false"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      nginx.ingress.kubernetes.io/websocket-services: cluster-ui-svc
+      nginx.org/websocket-services: cluster-ui-svc
+    hosts:
+      - host: cluster-ui.local
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cluster-ui-svc
+                port:
+                  number: 3000
+    tls: []
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3 

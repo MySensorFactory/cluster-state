@@ -1,0 +1,270 @@
+namespace: factory
+
+replicaCount: 1
+
+image:
+  imagePullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext:
+  runAsUser: 0
+
+deployments:
+  front-service:
+    image: juliantheking/front-service
+    imagePullPolicy: Always
+    env:
+      - name: SPRING_CONFIG_LOCATION
+        value: /config/application.yaml
+    ports:
+      - name: http
+        port: 8080
+        targetPort: 8080
+    volumeMounts:
+      - name: config-volume
+        mountPath: /config
+    volumes:
+      - name: config-volume
+        configMap:
+          name: front-service-config
+
+serviceaccounts:
+  front-service-sa:
+    name: front-service-sa
+
+roles:
+  front-service-role:
+    rules:
+      - apiGroups: ["", "apps"]
+        resources: ["pods", "pods/exec", "deployments"]
+        verbs: ["get", "list", "create"]
+
+roleBindings:
+  front-service-rolebinding:
+    roleName: front-service-role
+    subjects:
+      - kind: ServiceAccount
+        name: front-service-sa
+        namespace: factory
+
+services:
+  front-service-svc:
+    app: front-service
+    type: ClusterIP
+    ports:
+      - name: http
+        port: 8080
+        targetPort: 8080
+
+ingresses:
+  front-service-ingress:
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      nginx.ingress.kubernetes.io/ssl-redirect: "false"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+      nginx.ingress.kubernetes.io/use-regex: "true"
+    hosts:
+      - host: front-service.local
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: front-service-svc
+                port:
+                  name: port-http
+    tls: []
+
+configmaps:
+  front-service-config:
+    values:
+      application.yaml: |-
+        logging:
+          level:
+            org.springframework.cloud.gateway: DEBUG
+            org.springframework.web: DEBUG
+            reactor.netty: DEBUG
+            # For route matching issues specifically
+            org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping: DEBUG
+            # For request/response logging
+            org.springframework.cloud.gateway.filter.GatewayFilterChain: TRACE
+        server:
+          port: 8080
+          tomcat:
+            relaxed-query-chars: '|,{,},[,]'
+        spring:
+          main:
+            web-application-type: reactive
+          security:
+            oauth2:
+              resourceserver:
+                jwt:
+                  issuer-uri: "http://keycloak.local/auth/realms/FactoryRealm"
+              authorizationserver:
+                issuer: "http://keycloak.local"
+          cloud:
+            gateway:
+              routes:
+                - id: data-service
+                  uri: http://data-service-svc:8080
+                  predicates:
+                    - Path=/data/**
+                  filters:
+                    - RewritePath=/data/(?<path>.*), /$\{path}
+                - id: users-service
+                  uri: http://users-service-svc:80
+                  predicates:
+                    - Path=/users/**
+                  filters:
+                    - RewritePath=/users/(?<path>.*), /$\{path}
+                - id: data-service-documentation
+                  uri: http://data-service-svc:8080
+                  predicates:
+                    - Path=/docs/data
+                  filters:
+                    - RewritePath=/docs/data, /v3/api-docs
+                - id: users-service-documentation
+                  uri: http://users-service-svc:80
+                  predicates:
+                    - Path=/docs/users
+                  filters:
+                    - RewritePath=/docs/users, /v3/api-docs
+        app:
+          security:
+            clientId: "login-app"
+            useKeycloak: true
+
+        config:
+          createAccount:
+            enabled: true
+            fromPath: '/users/users'
+            toPath: '/users'
+            targetService: 'http://users-service-svc:80'
+          accessTokenAcquirablePaths:
+            - '/login'
+            - '/login/**'
+          publicPaths:
+            - '/login'
+            - '/refresh'
+            - '/users/users'
+            - '/login/**'
+            - '/refresh/**'
+            - '/docs/data'
+            - '/docs/users'
+          allowedOrigins:
+            - 'http://localhost:3000'
+            - 'http://localhost:8080'
+            - 'http://localhost:8081'
+            - 'http://localhost:8082'
+            - 'http://localhost:8083'
+
+        clients:
+          user:
+            url: http://users-service-svc:80
+            userDetailsPath: '/users/{userName}'
+
+        jwt:
+          jwtSecret: DeljSmKAmfHlMWYz4dyd3FDzjnavkGMi
+          jwtAccessTokenExpirationInMs: 600000
+          jwtRefreshTokenExpirationInMs: 1200000
+
+        login:
+          maxAttempts: 10
+          renewInMinutes: 1
+
+jobs:
+  add-keycloak-host:
+    serviceAccountName: front-service-sa
+    image:
+      name: bitnami/kubectl:latest
+    initContainers:
+      - name: add-keycloak-host-wait-for-deployment
+        image: bitnami/kubectl:latest
+        command:
+          - /bin/bash
+          - -c
+          - |
+            DEPLOYMENT_NAME="front-service"
+        
+            echo "Waiting for deployment $DEPLOYMENT_NAME to be available..."
+            kubectl wait --for=condition=Available deployment/$DEPLOYMENT_NAME -n factory --timeout=300s
+            
+            if [ $? -ne 0 ]; then
+              echo "Deployment did not become available within timeout"
+              exit 1
+            fi
+    commands:
+      - /bin/bash
+      - -c
+      - |
+        echo "Deployment is available"
+        DEPLOYMENT_NAME="front-service"
+        INGRESS_IP=10.101.34.184
+
+        echo "Getting pods for deployment $DEPLOYMENT_NAME..."
+        
+        kubectl rollout status deployment/$DEPLOYMENT_NAME -n factory
+        
+        BACKEND_PODS=$(kubectl get pods -n factory -l app=front-service -o jsonpath='{.items[*].metadata.name}')
+        
+        if [ -z "$BACKEND_PODS" ]; then
+          echo "No pods found for deployment. Exiting."
+          exit 1
+        fi
+        
+        echo "Found pods: $BACKEND_PODS"
+        
+        for POD in $BACKEND_PODS; do
+          echo "Updating /etc/hosts in pod $POD"
+          kubectl exec $POD -n factory -- bash -c "echo \"$INGRESS_IP keycloak.local\" >> /etc/hosts"
+          echo "Verified hosts file:"
+          kubectl exec $POD -n factory -- cat /etc/hosts
+        done
+        
+        echo "Hosts file update completed successfully"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3

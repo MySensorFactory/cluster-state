@@ -1,0 +1,56 @@
+{{- define "common.deployment" -}}
+{{- range $name, $deployment := .Values.deployments }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ $name }}
+    {{- include "helm.labels" $ | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+    spec:
+      {{- with $.Values.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if $deployment.volumes }}
+      volumes:
+        {{- toYaml $deployment.volumes | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $name }}
+          image: {{ $deployment.image }}
+          {{- if $deployment.ports }}
+          ports:
+            {{- range $deployment.ports }}
+            - containerPort: {{ .port }}
+              protocol: TCP
+            {{- end }}
+          {{- end }}
+          {{- if $deployment.env }}
+          env:
+            {{- toYaml $deployment.env | nindent 12 }}
+          {{- end }}
+          {{- if $deployment.envFrom }}
+          envFrom:
+            {{- toYaml $deployment.envFrom | nindent 12 }}
+          {{- end }}
+          {{- if $deployment.volumeMounts }}
+          volumeMounts:
+            {{- toYaml $deployment.volumeMounts | nindent 12 }}
+          {{- end }}
+          {{- with $.Values.image }}
+          imagePullPolicy: {{ .imagePullPolicy }}
+          {{- end }}
+{{- end }}
+{{- end }}

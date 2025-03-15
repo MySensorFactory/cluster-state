@@ -1,0 +1,405 @@
+controller:
+  config:
+    tcp-services-configmap: "default/tcp-services"
+  
+  service:
+    type: LoadBalancer
+    ports:
+      http: 80
+      https: 443
+    enableTCP: true
+    nodePorts:
+      tcp:
+        "5432": 32432
+
+addHeaders: {}
+affinity: {}
+allowSnippetAnnotations: false
+args: []
+automountServiceAccountToken: true
+autoscaling:
+  enabled: false
+  maxReplicas: 11
+  minReplicas: 1
+  targetCPU: ""
+  targetMemory: ""
+clusterDomain: cluster.local
+command: []
+common:
+  exampleValue: common-chart
+  global:
+    compatibility:
+      openshift:
+        adaptSecurityContext: auto
+    imagePullSecrets: []
+    imageRegistry: ""
+    security:
+      allowInsecureImages: false
+commonAnnotations: {}
+commonLabels: {}
+config: {}
+configMapNamespace: ""
+containerPorts:
+  defaultServer: 8181
+  http: 8080
+  https: 8443
+  metrics: 10254
+  profiler: 10245
+  status: 10246
+  stream: 10247
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    add:
+      - NET_BIND_SERVICE
+    drop:
+      - ALL
+  enabled: true
+  readOnlyRootFilesystem: true
+  runAsGroup: 1001
+  runAsNonRoot: true
+  runAsUser: 1001
+  seLinuxOptions: {}
+  seccompProfile:
+    type: RuntimeDefault
+controller:
+  config:
+    tcp-services-configmap: default/tcp-services
+  service:
+    enableTCP: true
+    ports:
+      http:
+        port: 80
+        protocol: TCP
+        targetPort: http
+      https:
+        port: 443
+        protocol: TCP
+        targetPort: https
+      kafka1:
+        port: 9092
+        protocol: TCP
+        targetPort: 9092
+      kafka2:
+        port: 9093
+        protocol: TCP
+      kafka3:
+        port: 9094
+        protocol: TCP
+        targetPort: 9094
+      postgresql:
+        port: 5432
+        protocol: TCP
+        targetPort: 5432
+    tcp:
+      "5432": factory/database-svc:5432
+      "9092": factory/kafka-broker-1-service:19092
+      "9093": factory/kafka-broker-2-service:19092
+      "9094": factory/kafka-broker-3-service:19092
+customLivenessProbe: {}
+customReadinessProbe: {}
+customStartupProbe: {}
+customTemplate:
+  configMapKey: ""
+  configMapName: ""
+daemonset:
+  hostPorts:
+    http: 80
+    https: 443
+  useHostPort: false
+defaultBackend:
+  affinity: {}
+  args: []
+  automountServiceAccountToken: true
+  command: []
+  containerPort: 8080
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    enabled: true
+    readOnlyRootFilesystem: true
+    runAsGroup: 1001
+    runAsNonRoot: true
+    runAsUser: 1001
+    seLinuxOptions: {}
+    seccompProfile:
+      type: RuntimeDefault
+  customLivenessProbe: {}
+  customReadinessProbe: {}
+  customStartupProbe: {}
+  enabled: true
+  extraArgs: {}
+  extraEnvVars: []
+  extraEnvVarsCM: ""
+  extraEnvVarsSecret: ""
+  extraVolumeMounts: []
+  extraVolumes: []
+  hostAliases: []
+  image:
+    digest: ""
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+    registry: docker.io
+    repository: bitnami/nginx
+    tag: 1.27.4-debian-12-r5
+  initContainers: []
+  lifecycleHooks: {}
+  livenessProbe:
+    enabled: true
+    failureThreshold: 3
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 5
+  networkPolicy:
+    allowExternal: true
+    allowExternalEgress: true
+    enabled: true
+    extraEgress: []
+    extraIngress: []
+    ingressNSMatchLabels: {}
+    ingressNSPodMatchLabels: {}
+  nodeAffinityPreset:
+    key: ""
+    type: ""
+    values: []
+  nodeSelector: {}
+  pdb:
+    create: true
+    maxUnavailable: ""
+    minAvailable: ""
+  podAffinityPreset: ""
+  podAnnotations: {}
+  podAntiAffinityPreset: soft
+  podLabels: {}
+  podSecurityContext:
+    enabled: true
+    fsGroup: 1001
+    fsGroupChangePolicy: Always
+    supplementalGroups: []
+    sysctls: []
+  priorityClassName: ""
+  readinessProbe:
+    enabled: true
+    failureThreshold: 6
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    successThreshold: 1
+    timeoutSeconds: 5
+  replicaCount: 1
+  resources: {}
+  resourcesPreset: nano
+  schedulerName: ""
+  serverBlockConfig: |-
+    location /healthz {
+      return 200;
+    }
+
+    location / {
+      return 404;
+    }
+  service:
+    annotations: {}
+    clusterIP: ""
+    externalIPs: []
+    externalTrafficPolicy: ""
+    extraPorts: []
+    healthCheckNodePort: 0
+    ipFamilies: []
+    ipFamilyPolicy: ""
+    labels: {}
+    loadBalancerClass: ""
+    loadBalancerIP: ""
+    loadBalancerSourceRanges: []
+    nodePorts:
+      http: ""
+      https: ""
+      tcp: 
+        "5432": 32432
+      udp: {}
+    ports:
+      http: 80
+      https: 443
+    sessionAffinity: None
+    sessionAffinityConfig: {}
+    targetPorts:
+      http: http
+      https: https
+    type: LoadBalancer
+  sidecars: []
+  startupProbe:
+    enabled: false
+    failureThreshold: 6
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    successThreshold: 1
+    timeoutSeconds: 5
+  terminationGracePeriodSeconds: 60
+  tolerations: []
+  topologySpreadConstraints: []
+defaultBackendService: ""
+dhParam: ""
+dnsConfig: {}
+dnsPolicy: ClusterFirst
+electionID: ingress-controller-leader
+extraArgs: {}
+extraDeploy: []
+extraEnvVars: []
+extraEnvVarsCM: ""
+extraEnvVarsSecret: ""
+extraVolumeMounts: []
+extraVolumes: []
+fullnameOverride: ""
+global:
+  compatibility:
+    openshift:
+      adaptSecurityContext: auto
+  imagePullSecrets: []
+  imageRegistry: ""
+  security:
+    allowInsecureImages: false
+hostAliases: []
+hostNetwork: false
+image:
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+  registry: docker.io
+  repository: bitnami/nginx-ingress-controller
+  tag: 1.12.0-debian-12-r13
+ingressClassResource:
+  controllerClass: k8s.io/ingress-nginx
+  default: false
+  enabled: true
+  name: nginx
+  parameters: {}
+initContainers: []
+kind: Deployment
+kubeVersion: ""
+lifecycle: {}
+lifecycleHooks: {}
+livenessProbe:
+  enabled: true
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 1
+maxmindLicenseKey: ""
+metrics:
+  enabled: false
+  prometheusRule:
+    additionalLabels: {}
+    enabled: false
+    namespace: ""
+    rules: []
+  service:
+    annotations:
+      prometheus.io/port: '{{ coalesce .Values.metrics.service.ports.metrics .Values.metrics.service.port
+        }}'
+      prometheus.io/scrape: "true"
+    labels: {}
+    ports:
+      metrics: 9913
+    type: ClusterIP
+  serviceMonitor:
+    annotations: {}
+    enabled: false
+    honorLabels: false
+    interval: 30s
+    jobLabel: ""
+    labels: {}
+    metricRelabelings: []
+    namespace: ""
+    relabelings: []
+    scrapeTimeout: ""
+    selector: {}
+minReadySeconds: 0
+nameOverride: ""
+namespaceOverride: ""
+networkPolicy:
+  allowExternal: true
+  allowExternalEgress: true
+  enabled: true
+  extraEgress: []
+  extraIngress: []
+  ingressNSMatchLabels: {}
+  ingressNSPodMatchLabels: {}
+  kubeAPIServerPorts:
+    - 443
+    - 6443
+    - 8443
+nodeAffinityPreset:
+  key: ""
+  type: ""
+  values: []
+nodeSelector: {}
+pdb:
+  create: true
+  maxUnavailable: ""
+  minAvailable: ""
+podAffinityPreset: ""
+podAnnotations: {}
+podAntiAffinityPreset: soft
+podLabels: {}
+podSecurityContext:
+  enabled: true
+  fsGroup: 1001
+  fsGroupChangePolicy: Always
+  supplementalGroups: []
+  sysctls: []
+podSecurityPolicy:
+  enabled: false
+priorityClassName: ""
+proxySetHeaders: {}
+publishService:
+  enabled: false
+  pathOverride: ""
+rbac:
+  create: true
+  rules: []
+readinessProbe:
+  enabled: true
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 1
+replicaCount: 1
+reportNodeInternalIp: false
+resources: {}
+resourcesPreset: nano
+revisionHistoryLimit: 10
+schedulerName: ""
+scope:
+  enabled: false
+  namespace: ""
+serviceAccount:
+  annotations: {}
+  automountServiceAccountToken: false
+  create: true
+  name: ""
+sidecars: []
+startupProbe:
+  enabled: false
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 1
+svcPortNamesPrefix: ""
+tcp:
+  "5432": "factory/database-svc:5432"
+  "9092": "factory/kafka-broker-1-service:19092"
+  "9093": "factory/kafka-broker-2-service:19092"
+  "9094": "factory/kafka-broker-3-service:19092"
+tcpConfigMapNamespace: ""
+terminationGracePeriodSeconds: 60
+tolerations: []
+topologySpreadConstraints: []
+udp: {}
+udpConfigMapNamespace: ""
+updateStrategy: {}
+watchIngressWithoutClass: false

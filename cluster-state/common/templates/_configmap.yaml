@@ -1,0 +1,18 @@
+{{- define "common.configmap" -}}
+{{- range $name, $configmap := .Values.configmaps }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ $name }}
+    {{- include "helm.labels" $ | nindent 4 }}
+data:
+  {{- range $key, $val := $configmap.values }}
+  {{ $key }}: |-
+{{ $val | indent 4}}
+  {{- end }}
+{{- end }}
+{{- end }}

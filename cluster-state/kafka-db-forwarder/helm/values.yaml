@@ -1,0 +1,125 @@
+namespace: factory
+
+replicaCount: 1
+
+image:
+  imagePullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  name: ""
+
+podAnnotations: {}
+
+securityContext:
+  runAsUser: 0
+
+deployments:
+  kafka-db-forwarder:
+    image: juliantheking/kafka-db-forwarder
+    env:
+      - name: SPRING_CONFIG_LOCATION
+        value: /config/application.yaml
+    envFrom:
+      - configMapRef:
+          name: db-credentials
+    ports:
+      - name: metrics
+        port: 8080
+    volumeMounts:
+      - name: config-volume
+        mountPath: /config
+    volumes:
+      - name: config-volume
+        configMap:
+          name: kafka-db-forwarder-config
+
+services:
+  kafka-db-forwarder-svc:
+    app: kafka-db-forwarder
+    type: ClusterIP
+    ports:
+      - name: metrics
+        port: 8080
+
+configmaps:
+  kafka-db-forwarder-config:
+    values:
+      application.yaml: |-
+        kafka:
+          config:
+            pressure:
+              enabled: true
+              bufferSize: 10
+              inputTopics: AfterReturnCompressorPressureMean,BeforeBeginCompressorPressureMean,AfterBeginCompressorPressureMean,BeforeReturnCompressorPressureMean
+              listenerId: pressureMeanListener
+              groupId: pressureMeanGroup
+            temperature:
+              enabled: true
+              bufferSize: 10
+              inputTopics: BeginTemperatureMean,ReturnTemperatureMean,BeforeBoilerTemperatureMean,AfterBoilerTemperatureMean
+              listenerId: temperatureMeanListener
+              groupId: temperatureMeanGroup
+            flowRate:
+              enabled: true
+              bufferSize: 10
+              inputTopics: CompressedReturnFlowRateMean,InputFlowRateMean,NotCompressedReturnFlowRateMean,OutputFlowRateMean
+              listenerId: flowRateMeanListener
+              groupId: flowRateMeanGroup
+            gasComposition:
+              enabled: true
+              bufferSize: 10
+              inputTopics: InputGasCompositionMean,BeginGasCompositionMean,OutputGasCompositionMean,ReturnGasCompositionMean
+              listenerId: gasCompositionMeanListener
+              groupId: gasCompositionMeanGroup
+            compressorState:
+              enabled: true
+              bufferSize: 10
+              inputTopics: BeginCompressorNoiseAndVibrationMean,ReturnCompressorNoiseAndVibrationMean
+              listenerId: compressorStateListener
+              groupId: compressorStateGroup
+        spring:
+          kafka:
+            bootstrap-servers: [kafka-broker-1-service:9092,kafka-broker-2-service:9092,kafka-broker-3-service:9092]
+            producer:
+              bootstrap-servers: [kafka-broker-1-service:9092,kafka-broker-2-service:9092,kafka-broker-3-service:9092]
+            consumer:
+              value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+              bootstrap-servers: [kafka-broker-1-service:9092,kafka-broker-2-service:9092,kafka-broker-3-service:9092]
+              auto-offset-reset: latest
+              isolation-level: read_committed
+              group-id: dbForwarderGroup
+            listener:
+              missing-topics-fatal: true
+            properties:
+              schema:
+                registry:
+                  url: http://schema-registry-service:8081
+              specific:
+                avro:
+                  reader: true
+              value:
+                subject:
+                  name:
+                    strategy: io.confluent.kafka.serializers.subject.RecordNameStrategy
+          datasource:
+            url: jdbc:postgresql://database-svc:5432/factory
+            username: ${POSTGRES_USER}
+            password: ${POSTGRES_PASSWORD}
+          jpa:
+            properties:
+              hibernate:
+                order_inserts: true
+                dialect: org.hibernate.dialect.PostgreSQLDialect
+                jdbc:
+                  batch_size: 10
+                format_sql: true
+                generate_statistics: true
+            hibernate:
+              ddl-auto: none
+            show-sql: true
+        server:
+          port: 8080

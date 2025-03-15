@@ -1,0 +1,9 @@
+{{- include "common.service" . }}
+---
+{{- include "common.statefulset" . }}
+---
+{{- include "common.persistentVolume" . }}
+---
+{{- include "common.persistentVolumeClaim" . }}
+---
+{{- include "common.ingress" . }}

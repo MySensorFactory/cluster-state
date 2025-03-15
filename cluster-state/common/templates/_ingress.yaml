@@ -1,0 +1,43 @@
+{{- define "common.ingress" -}}
+{{- range $name, $ingress := .Values.ingresses }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    kubernetes.io/ingress.class: {{ $ingress.className }}
+    meta.helm.sh/release-name: {{ $.Release.Name | quote }}
+    meta.helm.sh/release-namespace: {{ $.Release.Namespace | quote }}
+    {{- with $ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ $ingress.className }}
+  rules:
+    {{- range $ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ .backend.service.name }}
+                port:
+                  {{- if .backend.service.port.name }}
+                  name: {{ .backend.service.port.name }}
+                  {{- else if .backend.service.port.number }}
+                  number: {{ .backend.service.port.number }}
+                  {{- end }}
+          {{- end }}
+    {{- end }}
+  {{- with $ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

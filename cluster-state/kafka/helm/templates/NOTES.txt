@@ -1,0 +1,22 @@
+Thank you for installing {{ .Chart.Name }}.
+
+Your Kafka cluster has been set up with the following components:
+
+1. Zookeeper:
+   - Service: zookeeper-service:2181
+
+2. Kafka Brokers:
+   - Broker 1: kafka-broker-1-service:9092 (internal), 192.168.0.19:19092 (external)
+   - Broker 2: kafka-broker-2-service:9092 (internal), 192.168.0.19:29092 (external)
+   - Broker 3: kafka-broker-3-service:9092 (internal), 192.168.0.19:39092 (external)
+
+3. Schema Registry:
+   - Service: schema-registry-service:8081
+
+To produce messages to a topic:
+  kubectl run kafka-producer -it --rm=true --restart=Never --image=confluentinc/cp-kafka:7.3.2 -- \
+  kafka-console-producer --bootstrap-server kafka-broker-1-service:9092 --topic your-topic-name
+
+To consume messages from a topic:
+  kubectl run kafka-consumer -it --rm=true --restart=Never --image=confluentinc/cp-kafka:7.3.2 -- \
+  kafka-console-consumer --bootstrap-server kafka-broker-1-service:9092 --topic your-topic-name --from-beginning

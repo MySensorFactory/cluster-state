@@ -1,0 +1,30 @@
+{{- define "common.service" -}}
+{{- range $name, $service := .Values.services }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ $service.app }}
+    {{- include "helm.labels" $ | nindent 4 }}
+spec:
+  type: {{ $service.type }}
+  {{- if $service.clusterIP }}
+  clusterIP: {{ $service.clusterIP }}
+  {{- end }}
+  ports:
+    {{- range $service.ports }}
+    - port: {{ .port }}
+      targetPort: {{ .port }}
+      protocol: TCP
+      name: port-{{ .name }}
+      {{- if .nodePort }}
+      nodePort:  {{ .nodePort }}
+      {{- end }}
+    {{- end }}
+  selector:
+    app: {{ $service.app }}
+{{- end }}
+{{- end }}

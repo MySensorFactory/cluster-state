@@ -1,0 +1,13 @@
+PostgreSQL database is now installed!
+
+Service name: {{ index .Values.services "database-svc" "app" }}-svc
+Port: {{ index .Values.services "database-svc" "ports" 0 "port" }}
+Namespace: {{ .Values.namespace }}
+
+To connect to PostgreSQL from another pod in the cluster, use:
+  postgresql://{{ index .Values.configmaps "db-credentials" "values" "POSTGRES_USER" }}:{{ index .Values.configmaps "db-credentials" "values" "POSTGRES_PASSWORD" }}@database-svc:5432/{{ index .Values.configmaps "db-credentials" "values" "POSTGRES_DB" }}
+
+For external access via NGINX Ingress Controller:
+1. Update the nginx-ingress-values.yaml file in the nginx-config directory to include the PostgreSQL TCP mapping
+2. Apply the updated configuration with: helm upgrade nginx-ingress nginx-ingress/nginx-ingress -n default -f nginx-config/nginx-ingress-values.yaml
+3. Connect using: postgresql://{{ index .Values.configmaps "db-credentials" "values" "POSTGRES_USER" }}:{{ index .Values.configmaps "db-credentials" "values" "POSTGRES_PASSWORD" }}@<ingress-ip>:5432/{{ index .Values.configmaps "db-credentials" "values" "POSTGRES_DB" }}

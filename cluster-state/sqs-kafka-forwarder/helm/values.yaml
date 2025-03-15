@@ -1,0 +1,112 @@
+namespace: factory
+
+replicaCount: 1
+
+image:
+  imagePullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  name: ""
+
+podAnnotations: {}
+
+securityContext:
+  runAsUser: 0
+
+deployments:
+  sqs-kafka-forwarder:
+    image: juliantheking/sqs-kafka-forwarder
+    env:
+      - name: SPRING_CONFIG_LOCATION
+        value: /config/application.yaml
+    ports:
+      - name: metrics
+        port: 8080
+    volumeMounts:
+      - name: config-volume
+        mountPath: /config
+    volumes:
+      - name: config-volume
+        configMap:
+          name: sqs-kafka-forwarder-config
+
+services:
+  sqs-kafka-forwarder-svc:
+    app: sqs-kafka-forwarder
+    type: ClusterIP
+    ports:
+      - name: metrics
+        port: 8080
+
+configmaps:
+  sqs-kafka-forwarder-config:
+    values:
+      application.yaml: |-
+        sqs:
+          pressureQueue: PressureSQSQueue
+          temperatureQueue: TemperatureSQSQueue
+          noiseAndVibrationQueue: NoiseVibrationSQSQueue
+          gasCompositionQueue: GasCompositionSQSQueue
+          flowRateQueue: FlowRateSQSQueue
+          isLocal: true
+        kafka:
+          sensorConfig:
+            temperature:
+              topicName: temperature
+              clientId: temperature
+            pressure:
+              topicName: pressure
+              clientId: pressure
+            noiseAndVibration:
+              topicName: noiseAndVibration
+              clientId: noiseAndVibration
+            gasComposition:
+              topicName: gasComposition
+              clientId: gasComposition
+            flowRate:
+              topicName: flowRate
+              clientId: flowRate
+        cloud:
+          aws:
+            region:
+              static: eu-central-1
+            credentials:
+              access-key: key
+              secret-key: key
+            stack:
+              auto: false
+        spring:
+          cloud:
+            aws:
+              sqs:
+                listener:
+                  max-concurrent-messages: 50
+              region:
+                static: eu-central-1
+              credentials:
+                access-key: key
+                secret-key: key
+
+          autoconfigure:
+            exclude:
+              - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+              - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+          kafka:
+            bootstrap-servers: [kafka-broker-1-service:9092,kafka-broker-2-service:9092,kafka-broker-3-service:9092]
+            producer:
+              bootstrap-servers: [kafka-broker-1-service:9092,kafka-broker-2-service:9092,kafka-broker-3-service:9092]
+            transactionIdPrefix: sqsForwarder
+            schemaRegistryUrl: http://schema-registry-service:8081
+            autoRegisterSchemas: true
+            useSchemasLatestVersion: true
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+livenessProbe: {}
+readinessProbe: {}

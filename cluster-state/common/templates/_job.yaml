@@ -1,0 +1,52 @@
+{{- define "common.job" -}}
+{{- range $name, $job := .Values.jobs }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ $name }}
+    {{- include "helm.labels" $ | nindent 4 }}
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+    spec:
+      serviceAccountName: {{ $job.serviceAccountName }}
+      {{- with $.Values.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: OnFailure
+      {{- if $job.initContainers }}
+      initContainers:
+        {{- toYaml $job.initContainers | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $name }}
+          image: {{ $job.image.name }}
+          command: {{ toYaml $job.commands | nindent 12 }}
+          args: {{ toYaml $job.args | nindent 12 }}
+          {{- if $job.volumeMounts }}
+          volumeMounts:
+            {{- range $mount := $job.volumeMounts }}
+            - name: {{ $mount.name }}
+              mountPath: {{ $mount.mountPath }}
+            {{- end }}
+          {{- end }}
+      {{- if $job.volumes }}
+      volumes:
+        {{- range $volume := $job.volumes }}
+        - name: {{ $volume.name }}
+          {{- if $volume.configMap }}
+          configMap:
+            name: {{ $volume.configMap.name }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}

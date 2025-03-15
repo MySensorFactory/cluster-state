@@ -1,0 +1,241 @@
+namespace: factory
+
+replicaCount: 1
+
+image:
+  imagePullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  name: ""
+
+podAnnotations: {}
+
+securityContext:
+  runAsUser: 0
+
+services:
+  data-service-svc:
+    app: data-service
+    type: ClusterIP
+    ports:
+      - name: http
+        port: 8080
+        targetPort: 8080
+
+deployments:
+  data-service:
+    image: juliantheking/data-service
+    imagePullPolicy: Always
+    env:
+      - name: POSTGRES_DB
+        valueFrom:
+          configMapKeyRef:
+            name: db-credentials
+            key: POSTGRES_DB
+      - name: POSTGRES_USER
+        valueFrom:
+          configMapKeyRef:
+            name: db-credentials
+            key: POSTGRES_USER
+      - name: POSTGRES_PASSWORD
+        valueFrom:
+          configMapKeyRef:
+            name: db-credentials
+            key: POSTGRES_PASSWORD
+      - name: SPRING_CONFIG_LOCATION
+        value: /config/application.yaml
+    ports:
+      - name: http
+        port: 8080
+    volumeMounts:
+      - name: config-volume
+        mountPath: /config
+    volumes:
+      - name: config-volume
+        configMap:
+          name: data-service-config
+
+configmaps:
+  data-service-config:
+    values:
+      application.yaml: |-
+        server:
+          port: 8080
+          tomcat:
+            relaxed-query-chars: '|,{,},[,]'
+        
+        es:
+          address: 'elasticsearch-svc:9200'
+          indexName: 'report'
+        
+        spring:
+          datasource:
+            url: jdbc:postgresql://database-svc:5432/factory
+            username: ${POSTGRES_USER}
+            password: ${POSTGRES_PASSWORD}
+          jpa:
+            properties:
+              hibernate:
+                dialect: org.hibernate.dialect.PostgreSQLDialect
+            hibernate:
+              ddl-auto: none
+        
+          kafka:
+            bootstrap-servers:
+              - kafka-broker-1-service:9092
+              - kafka-broker-2-service:9092
+              - kafka-broker-3-service:9092
+            producer:
+              bootstrap-servers:
+                - kafka-broker-1-service:9092
+                - kafka-broker-2-service:9092
+                - kafka-broker-3-service:9092
+            consumer:
+              value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+              bootstrap-servers:
+                - kafka-broker-1-service:9092
+                - kafka-broker-2-service:9092
+                - kafka-broker-3-service:9092
+              auto-offset-reset: latest
+              isolation-level: read_committed
+              group-id: dataServiceGroup
+            listener:
+              missing-topics-fatal: true
+            properties:
+              schema:
+                registry:
+                  url: http://schema-registry-service:8081
+              specific:
+                avro:
+                  reader: true
+              value:
+                subject:
+                  name:
+                    strategy: io.confluent.kafka.serializers.subject.RecordNameStrategy
+        logging:
+          level:
+            tracer: TRACE
+            org:
+              hibernate:
+                orm:
+                  jdbc:
+                    bind: trace
+                SQL: debug
+        
+        data:
+          dataSources:
+            temperature:
+              sensorType: temperature
+              displayName: 'Temperature'
+              availableLabels:
+                - label: BeforeBoiler
+                  displayName: 'Before boiler'
+                - label: AfterBoiler
+                  displayName: 'After boiler'
+                - label: Return
+                  displayName: 'Return'
+                - label: Begin
+                  displayName: 'Begin'
+            pressure:
+              sensorType: pressure
+              displayName: 'Pressure'
+              availableLabels:
+                - label: AfterReturnCompressor
+                  displayName: 'After return compressor'
+                - label: BeforeReturnCompressor
+                  displayName: 'Before return compressor'
+                - label: AfterBeginCompressor
+                  displayName: 'After begin compressor'
+                - label: BeforeBeginCompressor
+                  displayName: 'Before begin compressor'
+            flowRate:
+              sensorType: flowRate
+              displayName: 'Flow rate'
+              availableLabels:
+                - label: CompressedReturn
+                  displayName: 'Compressed return'
+                - label: NotCompressedReturn
+                  displayName: 'Not compressed return'
+                - label: Input
+                  displayName: 'Input'
+                - label: Output
+                  displayName: 'Output'
+            gasComposition:
+              sensorType: gasComposition
+              displayName: 'Gas composition'
+              availableLabels:
+                - label: Begin
+                  displayName: 'Begin'
+                - label: Input
+                  displayName: 'Input'
+                - label: Output
+                  displayName: 'Output'
+                - label: Return
+                  displayName: 'Return'
+            compressorState:
+              sensorType: compressorState
+              displayName: 'Compressor state'
+              availableLabels:
+                - label: ReturnCompressor
+                  displayName: 'Return compressor'
+                - label: BeginCompressor
+                  displayName: 'Begin compressor'
+        
+        config:
+          sort-options:
+            - label: From date
+              value: from
+            - label: To date
+              value: to
+            - label: Name
+              value: name.sort
+        
+          time-range-options:
+            - label: One day
+              value: oneDay
+              days-count: 1
+            - label: Two days
+              value: twoDays
+              days-count: 2
+            - label: Three days
+              value: threeDays
+              days-count: 3
+            - label: Five days
+              value: fiveDays
+              days-count: 5
+            - label: One week
+              value: week
+              days-count: 7
+        
+          unit-mapping:
+            temperature:
+              temperature: °C
+            compressorState:
+              vibrationAmplitude: m
+              vibrationFrequency: kHz
+              noiseLevel: '%'
+            pressure:
+              pressure: hPa
+            flowRate:
+              flowRate: m3/s
+            gasComposition:
+              CO2: '%'
+              NH3: '%'
+              O2: '%'
+              N2: '%'
+              H2: '%'
+        
+          wide-sensors:
+            - gasComposition
+            - compressorState
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+livenessProbe: {}
+readinessProbe: {}

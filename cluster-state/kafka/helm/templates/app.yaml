@@ -1,0 +1,11 @@
+{{- include "common.service" . }}
+---
+{{- include "common.statefulset" . }}
+---
+{{- include "common.deployment" . }}
+---
+{{- include "common.configmap" .}}
+---
+{{- include "common.job" .}}
+---
+{{- include "common.ingress" . }}

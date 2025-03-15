@@ -1,0 +1,319 @@
+namespace: factory
+
+replicaCount: 1
+
+image:
+  imagePullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  name: ""
+
+podAnnotations: { }
+
+securityContext:
+  runAsUser: 0
+
+ingresses:
+  schema-registry:
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      nginx.ingress.kubernetes.io/ssl-redirect: "false"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+      nginx.ingress.kubernetes.io/use-regex: "true"
+    hosts:
+      - host: schema-registry.local
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: schema-registry-service
+                port:
+                  name: port-http
+    tls: []
+
+services:
+  zookeeper-service:
+    app: zookeeper
+    type: ClusterIP
+    clusterIP: None
+    ports:
+      - name: client
+        port: 2181
+
+  kafka-broker-1-service:
+    type: ClusterIP
+    app: "kafka-broker-1"
+    clusterIP: None
+    ports:
+      - name: internal
+        port: 9092
+      - name: external
+        port: 19092
+
+  kafka-broker-2-service:
+    type: ClusterIP
+    app: kafka-broker-2
+    clusterIP: None
+    ports:
+      - name: internal
+        port: 9092
+      - name: external
+        port: 19092
+
+  kafka-broker-3-service:
+    type: ClusterIP
+    app: kafka-broker-3
+    clusterIP: None
+    ports:
+      - name: internal
+        port: 9092
+      - name: external
+        port: 19092
+
+  schema-registry-service:
+    type: ClusterIP
+    app: schema-registry
+    ports:
+      - name: port-http
+        port: 8081
+
+statefulsets:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    env:
+      - name: ZOOKEEPER_CLIENT_PORT
+        value: "2181"
+      - name: ZOOKEEPER_TICK_TIME
+        value: "2000"
+    ports:
+      - name: client
+        port: 2181
+    volumeMounts:
+      - name: data
+        mountPath: /var/lib/zookeeper/data
+      - name: log
+        mountPath: /var/lib/zookeeper/log
+    volumes:
+      - name: data
+        hostPath:
+          path: /home/damiano/zookeeper-data
+          type: DirectoryOrCreate
+      - name: log
+        hostPath:
+          path: /home/damiano/zookeeper-log
+          type: DirectoryOrCreate
+    node: damiano
+
+  kafka-broker-1:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka-broker
+    env:
+      - name: KAFKA_BROKER_ID
+        value: "1"
+      - name: KAFKA_ZOOKEEPER_CONNECT
+        value: 'zookeeper-service:2181'
+      - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+        value: PLAINTEXT:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT
+      - name: KAFKA_LISTENERS
+        value: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_EXTERNAL://0.0.0.0:19092
+      - name: KAFKA_ADVERTISED_LISTENERS
+        value: PLAINTEXT://kafka-broker-1-service:9092,PLAINTEXT_EXTERNAL://kafka-cluster.local:9092
+      - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+        value: "3"
+      - name: KAFKA_LOG_RETENTION_HOURS
+        value: "48"
+    ports:
+      - name: internal
+        port: 9092
+      - name: external
+        port: 19092
+    volumeMounts:
+      - name: data
+        mountPath: /var/lib/kafka/data
+    volumes:
+      - name: data
+        hostPath:
+          path: /home/damiano/kafka_data_1
+          type: DirectoryOrCreate
+    node: slave
+
+  kafka-broker-2:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka-broker
+    env:
+      - name: KAFKA_BROKER_ID
+        value: "2"
+      - name: KAFKA_ZOOKEEPER_CONNECT
+        value: 'zookeeper-service:2181'
+      - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+        value: PLAINTEXT:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT
+      - name: KAFKA_LISTENERS
+        value: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_EXTERNAL://0.0.0.0:19092
+      - name: KAFKA_ADVERTISED_LISTENERS
+        value: PLAINTEXT://kafka-broker-2-service:9092,PLAINTEXT_EXTERNAL://kafka-cluster.local:9093
+      - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+        value: "3"
+      - name: KAFKA_LOG_RETENTION_HOURS
+        value: "48"
+    ports:
+      - name: internal
+        port: 9092
+      - name: external
+        port: 19092
+    volumeMounts:
+      - name: data
+        mountPath: /var/lib/kafka/data
+    volumes:
+      - name: data
+        hostPath:
+          path: /home/damiano/kafka_data_2
+          type: DirectoryOrCreate
+    node: slave
+
+  kafka-broker-3:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka-broker
+    env:
+      - name: KAFKA_BROKER_ID
+        value: "3"
+      - name: KAFKA_ZOOKEEPER_CONNECT
+        value: 'zookeeper-service:2181'
+      - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+        value: PLAINTEXT:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT
+      - name: KAFKA_LISTENERS
+        value: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_EXTERNAL://0.0.0.0:19092
+      - name: KAFKA_ADVERTISED_LISTENERS
+        value: PLAINTEXT://kafka-broker-3-service:9092,PLAINTEXT_EXTERNAL://kafka-cluster.local:9094
+      - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+        value: "3"
+      - name: KAFKA_LOG_RETENTION_HOURS
+        value: "48"
+    ports:
+      - name: internal
+        port: 9092
+      - name: external
+        port: 19092
+    volumeMounts:
+      - name: data
+        mountPath: /var/lib/kafka/data
+    volumes:
+      - name: data
+        hostPath:
+          path: /home/damiano/kafka_data_3
+          type: DirectoryOrCreate
+    node: damiano
+
+deployments:
+  schema-registry:
+    image: confluentinc/cp-schema-registry:latest
+    env:
+      - name: SCHEMA_REGISTRY_HOST_NAME
+        value: "schema-registry" 
+      - name: SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL
+        value: 'zookeeper-service:2181'
+      - name: SCHEMA_REGISTRY_LISTENERS
+        value: http://0.0.0.0:8081 
+      - name: SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS
+        value: PLAINTEXT://kafka-broker-1-service:9092,PLAINTEXT://kafka-broker-2-service:9092,PLAINTEXT://kafka-broker-3-service:9092
+      - name: SCHEMA_REGISTRY_DEBUG
+        value: 'true'
+      - name: SCHEMA_REGISTRY_SCHEMA_COMPATIBILITY_LEVEL
+        value: "none"
+    ports:
+      - name: http
+        port: 8081
+
+configmaps:
+  kafka-topics-configmap:
+    values:
+      topics: |
+        AfterBeginCompressorPressureMean
+        AfterBoilerTemperatureMean
+        AfterReturnCompressorPressureMean
+        BeforeBeginCompressorPressureMean
+        BeforeBoilerTemperatureMean
+        BeforeReturnCompressorPressureMean
+        BeginCompressorNoiseAndVibrationMean
+        BeginGasCompositionMean
+        BeginTemperatureMean
+        CompressedReturnFlowRateMean
+        InputFlowRateMean
+        InputGasCompositionMean
+        NotCompressedReturnFlowRateMean
+        OutputFlowRateMean
+        OutputGasCompositionMean
+        ReactionPerformance
+        ReturnCompressorNoiseAndVibrationMean
+        ReturnGasCompositionMean
+        ReturnTemperatureMean
+        flowRate
+        gasComposition
+        noiseAndVibration
+        pressure
+        temperature
+
+jobs:
+  create-topics:
+    create: true
+    image:
+      name: confluentinc/cp-kafka:7.3.2
+    initContainers:
+      - name: wait-for-kafka
+        image: confluentinc/cp-kafka:7.3.2
+        command:
+          - /bin/bash
+          - -c
+          - |
+            until kafka-topics --bootstrap-server kafka-broker-1-service:9092 --list; do
+              echo "Waiting for Kafka brokers to be ready..."
+              sleep 5
+            done
+    commands:
+      - /bin/bash
+      - -c
+      - |
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic AfterBeginCompressorPressureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic AfterBoilerTemperatureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic AfterReturnCompressorPressureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic BeforeBeginCompressorPressureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic BeforeBoilerTemperatureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic BeforeReturnCompressorPressureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic BeginCompressorNoiseAndVibrationMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic BeginGasCompositionMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic BeginTemperatureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic CompressedReturnFlowRateMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic InputFlowRateMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic InputGasCompositionMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic NotCompressedReturnFlowRateMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic OutputFlowRateMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic OutputGasCompositionMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic ReactionPerformance --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic ReturnCompressorNoiseAndVibrationMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic ReturnGasCompositionMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic ReturnTemperatureMean --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic flowRate --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic gasComposition --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic noiseAndVibration --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic pressure --partitions 1 --replication-factor 3
+        kafka-topics --bootstrap-server kafka-broker-1-service:9092 --create --if-not-exists --topic temperature --partitions 1 --replication-factor 3
+    volumeMounts:
+      - name: topics-config
+        mountPath: /config
+    volumes:
+      - name: topics-config
+        configMap:
+          name: kafka-topics-configmap
+
+resources: { }
+nodeSelector: { }
+tolerations: [ ]
+affinity: { }
+livenessProbe: { }
+readinessProbe: { }

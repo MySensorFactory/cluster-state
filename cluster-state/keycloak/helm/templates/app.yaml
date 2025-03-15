@@ -1,0 +1,7 @@
+{{- include "common.service" . }}
+---
+{{- include "common.deployment" . }}
+---
+{{- include "common.configmap" .}}
+---
+{{- include "common.ingress" . }}

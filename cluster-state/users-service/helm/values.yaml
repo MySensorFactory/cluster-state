@@ -1,0 +1,113 @@
+namespace: factory
+
+replicaCount: 1
+
+image:
+  imagePullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+services:
+  users-service-svc:
+    app: users-service
+    type: ClusterIP
+    ports:
+      - name: http
+        port: 80
+        targetPort: 8080
+
+deployments:
+  users-service:
+    image: juliantheking/user-service
+    imagePullPolicy: Always
+    env:
+      - name: POSTGRES_DB
+        valueFrom:
+          configMapKeyRef:
+            name: db-credentials
+            key: POSTGRES_DB
+      - name: POSTGRES_USER
+        valueFrom:
+          configMapKeyRef:
+            name: db-credentials
+            key: POSTGRES_USER
+      - name: POSTGRES_PASSWORD
+        valueFrom:
+          configMapKeyRef:
+            name: db-credentials
+            key: POSTGRES_PASSWORD
+      - name: SPRING_CONFIG_LOCATION
+        value: /config/application.yaml
+    volumeMounts:
+      - name: config-volume
+        mountPath: /config
+    volumes:
+      - name: config-volume
+        configMap:
+          name: users-service-config
+    ports:
+      - name: http
+        port: 8080
+
+resources: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+livenessProbe: {}
+
+readinessProbe: {}
+
+configmaps:
+  users-service-config:
+    values:
+      application.yaml: |-
+        server:
+          port: 8080
+        spring:
+          datasource:
+            url: jdbc:postgresql://database-svc:5432/${POSTGRES_DB}
+            username: ${POSTGRES_USER}
+            password: ${POSTGRES_PASSWORD}
+          jpa:
+            properties:
+              hibernate:
+                dialect: org.hibernate.dialect.PostgreSQLDialect
+            hibernate:
+              ddl-auto: none
+        logging:
+          level:
+            org:
+              springframework:
+                boot:
+                  autoconfigure: error
+        app:
+          config:
+            auth-source: keycloak
+            keycloakUrl: http://keycloak-svc:8080/auth
+            adminRealm: master
+            masterClientId: admin-cli
+            adminUserName: admin
+            masterScope: openid
+            masterClientSecret: Ur3n6u7THxz23i9VT5RlOOBtewla4Qym
+            masterUserPassword: Pa55w0rd
+            usersRealm: FactoryRealm

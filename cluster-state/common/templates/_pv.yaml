@@ -1,0 +1,35 @@
+{{- define "common.persistentVolume" -}}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.persistentVolume.name | default (printf "%s-pv" .Chart.Name) }}
+  {{- if .Values.persistentVolume.namespace }}
+  namespace: {{ .Values.persistentVolume.namespace }}
+  {{- end }}
+  labels:
+    {{- if .Values.persistentVolume.labels }}
+    {{- toYaml .Values.persistentVolume.labels | nindent 4 }}
+    {{- else }}
+    app: {{ .Chart.Name }}
+    {{- end }}
+spec:
+  capacity:
+    storage: {{ .Values.persistentVolume.capacity }}
+  accessModes: {{ .Values.persistentVolume.accessModes }}
+  persistentVolumeReclaimPolicy: {{ .Values.persistentVolume.reclaimPolicy }}
+  storageClassName: {{ .Values.persistentVolume.storageClassName }}
+  volumeMode: {{ .Values.persistentVolume.volumeMode | default "Filesystem" }}
+  {{- if hasKey .Values.persistentVolume "hostPath" }}
+  hostPath:
+    path: {{ .Values.persistentVolume.hostPath.path }}
+    type: {{ .Values.persistentVolume.hostPath.type | default "DirectoryOrCreate" }}
+  {{- end }}
+  {{- if hasKey .Values.persistentVolume "local" }}
+  local:
+    path: {{ .Values.persistentVolume.local.path }}
+  {{- if .Values.persistentVolume.nodeAffinity }}
+  nodeAffinity:
+    {{- toYaml .Values.persistentVolume.nodeAffinity | nindent 4 }}
+  {{- end }}
+  {{- end }}
+{{- end }}

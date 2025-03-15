@@ -1,0 +1,83 @@
+{{- define "common.statefulset" -}}
+{{- range $name, $config := .Values.statefulsets }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.namespace | default "default" }}
+  labels:
+    app: {{ $config.app | default $name }}
+    {{- include "helm.labels" $ | nindent 4 }}
+spec:
+  serviceName: {{ $config.serviceName | default (printf "%s-service" $name) }}
+  replicas: {{ $config.replicas | default $.Values.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ $config.app | default $name }}
+  {{- if $config.podManagementPolicy }}
+  podManagementPolicy: {{ $config.podManagementPolicy }}
+  {{- end }}
+  {{- if $config.persistentVolumeClaimRetentionPolicy }}
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: {{ $config.persistentVolumeClaimRetentionPolicy.whenDeleted }}
+    whenScaled: {{ $config.persistentVolumeClaimRetentionPolicy.whenScaled }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        app: {{ $config.app | default $name }}
+    spec:
+      nodeName: {{ $config.node }}
+      {{- with $.Values.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if $config.node }}
+      nodeSelector:
+        kubernetes.io/hostname: {{ $config.node }}
+      {{- end }}
+      containers:
+        - name: {{ $config.containerName | default $name }}
+          {{- if $config.hostname }}
+          hostname: {{ $config.hostname }}
+          {{- end }}
+          imagePullPolicy: {{ $config.imagePullPolicy | default $.Values.image.imagePullPolicy | default "IfNotPresent" }}
+          image: {{ $config.image }}
+          {{- if $config.securityContext }}
+          securityContext:
+            {{- toYaml $config.securityContext | nindent 12 }}
+          {{- end }}
+          {{- if $config.ports }}
+          ports:
+            {{- range $config.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .port }}
+              protocol: TCP
+            {{- end }}
+          {{- end }}
+          {{- if $config.environment }}
+          env:
+            {{- range $key, $val := $config.environment }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+            {{- end }}
+          {{- end }}
+          {{- if $config.env }}
+          env:
+            {{- toYaml $config.env | nindent 12 }}
+          {{- end }}
+          {{- if $config.envFrom }}
+          envFrom:
+            {{- toYaml $config.envFrom | nindent 12 }}
+          {{- end }}
+          {{- if $config.volumeMounts }}
+          volumeMounts:
+            {{- toYaml $config.volumeMounts | nindent 12 }}
+          {{- end }}
+      {{- if $config.volumes }}
+      volumes:
+        {{- toYaml $config.volumes | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}

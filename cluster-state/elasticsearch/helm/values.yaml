@@ -1,0 +1,106 @@
+namespace: factory
+
+replicaCount: 1
+
+image:
+  imagePullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  name: ""
+
+podAnnotations: {}
+
+securityContext: {}
+
+services:
+  elasticsearch-svc:
+    app: elasticsearch
+    type: ClusterIP
+    ports:
+      - name: database
+        port: 9200
+        targetPort: 9200
+
+ingresses:
+  elasticsearch:
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      nginx.ingress.kubernetes.io/ssl-redirect: "false"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    hosts:
+      - host: elasticsearch.local
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: elasticsearch-svc
+                port:
+                  number: 9200
+    tls: []
+
+statefulsets:
+  elasticsearch-statefulset:
+    app: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.2
+    containerName: elasticsearch
+    serviceName: elasticsearch-svc
+    podManagementPolicy: OrderedReady
+    persistentVolumeClaimRetentionPolicy:
+      whenDeleted: Retain
+      whenScaled: Retain
+    env:
+      - name: discovery.type
+        value: single-node
+      - name: xpack.security.enabled
+        value: "false"
+      - name: ES_JAVA_OPTS
+        value: "-Xms1g -Xmx1g"
+    ports:
+      - name: elasticsearch
+        port: 9200
+    volumeMounts:
+      - name: pv-data
+        mountPath: /usr/share/elasticsearch/data
+    volumes:
+      - name: pv-data
+        persistentVolumeClaim:
+          claimName: elasticsearch-pvc
+    node: slave
+
+persistentVolume:
+  name: elasticsearch-pv
+  capacity: 30Gi
+  accessModes: [ ReadWriteOnce ]
+  reclaimPolicy: Retain
+  storageClassName: local-storage
+  volumeMode: Filesystem
+  local:
+    path: /home/damiano/damiano_elasticsearch_data
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - slave
+
+persistentVolumeClaim:
+  name: elasticsearch-pvc
+  storage: 30Gi
+  accessModes: [ ReadWriteOnce ]
+  storageClassName: local-storage
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+livenessProbe: {}
+readinessProbe: {}

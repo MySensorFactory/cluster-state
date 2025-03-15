@@ -1,0 +1,15 @@
+{{- include "common.service" . }}
+---
+{{- include "common.deployment" . }}
+---
+{{- include "common.configmap" .}}
+---
+{{- include "common.serviceaccount" . }}
+---
+{{- include "common.role" . }}
+---
+{{- include "common.rolebinding" . }}
+---
+{{- include "common.ingress" . }}
+---
+{{- include "common.job" . }}
